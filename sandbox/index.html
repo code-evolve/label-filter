@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>label-filter sandbox</title>
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1b1b1a; --dim: #6b6b68; --line: #e2e2de;
+  --card: #ffffff; --hit: #1c7c4a; --hit-bg: #eaf6ef; --miss: #9a9a96;
+  --warn: #9a5b00; --warn-bg: #fdf3e3; --accent: #2b5fd9; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17171a; --fg: #e8e8e6; --dim: #9a9a96; --line: #2e2e33;
+    --card: #1f1f23; --hit: #6ede9f; --hit-bg: #172c20; --miss: #6b6b68;
+    --warn: #f0b458; --warn-bg: #2e2312; --accent: #7aa2ff;
+  }
+}
+* { box-sizing: border-box }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, -apple-system, sans-serif;
+  padding: 24px 16px 64px;
+}
+.wrap { max-width: 980px; margin: 0 auto }
+h1 { font-size: 20px; margin: 0 0 2px; font-weight: 650 }
+.sub { color: var(--dim); font-size: 13px; margin: 0 0 22px }
+.sub code { font-family: var(--mono); font-size: 12px }
+label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin: 0 0 6px; font-weight: 600 }
+input[type=text], textarea {
+  width: 100%; background: var(--card); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 14px;
+}
+input[type=text]:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent }
+#pattern { font-size: 17px; padding: 13px 14px }
+textarea { min-height: 260px; resize: vertical; line-height: 1.6 }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px }
+@media (max-width: 720px) { .row { grid-template-columns: 1fr } }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden }
+.panel h2 { margin: 0; padding: 9px 13px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; font-weight: 600 }
+.count { font-family: var(--mono); color: var(--dim); font-weight: 500 }
+ul { list-style: none; margin: 0; padding: 6px 0; max-height: 300px; overflow: auto }
+li { padding: 3px 13px; font-family: var(--mono); font-size: 13px; white-space: pre-wrap; word-break: break-word }
+.hits h2 { color: var(--hit) } .hits li { color: var(--fg) }
+.misses li { color: var(--miss) }
+.empty { padding: 14px 13px; color: var(--dim); font-size: 13px; font-style: italic }
+#err { margin-top: 14px; padding: 11px 13px; border-radius: 8px; background: var(--warn-bg);
+  color: var(--warn); font-size: 13.5px; display: none; border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent) }
+#err.on { display: block }
+#err b { font-family: var(--mono) }
+.pgroup { margin-top: 14px }
+.pgroup .caption { display: block; font-size: 12px; color: var(--dim); margin: 0 0 6px }
+.pgroup .caption b { color: var(--fg); font-weight: 600 }
+.presets { display: flex; flex-wrap: wrap; gap: 6px }
+.presets button {
+  font-family: var(--mono); font-size: 12.5px; padding: 5px 9px; border-radius: 6px; cursor: pointer;
+  background: var(--card); color: var(--accent); border: 1px solid var(--line);
+}
+.presets button:hover { border-color: var(--accent) }
+.presets button.bad { color: var(--warn) }
+.presets button.bad:hover { border-color: var(--warn) }
+.why { margin: 6px 0 0; min-height: 1.5em; font-size: 12.5px; color: var(--dim) }
+.why code { font-family: var(--mono); color: var(--fg) }
+.cheat { margin-top: 30px; border-top: 1px solid var(--line); padding-top: 18px; font-size: 13.5px; color: var(--dim) }
+.cheat h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin: 18px 0 6px }
+.cheat h3:first-child { margin-top: 0 }
+.cheat table { border-collapse: collapse; width: 100% }
+.cheat td { padding: 4px 10px 4px 0; vertical-align: top }
+.cheat td:first-child { font-family: var(--mono); color: var(--fg); white-space: nowrap; width: 1%; padding-right: 18px }
+.note { margin-top: 16px; font-size: 12.5px; color: var(--dim) }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>label-filter</h1>
+  <p class="sub">Type a pattern. Everything below is matched live by the real <code>src/index.js</code> — not a copy.</p>
+
+  <label for="pattern">Pattern</label>
+  <input id="pattern" type="text" value="apple*pie" spellcheck="false" autocomplete="off" autofocus>
+
+  <div id="presets"></div>
+  <p class="why" id="why"></p>
+
+  <div id="err"></div>
+
+  <div class="row">
+    <div>
+      <label for="labels">Labels — one per line</label>
+      <textarea id="labels" spellcheck="false"></textarea>
+    </div>
+    <div>
+      <div class="panel hits">
+        <h2>Matched <span class="count" id="hitCount">0</span></h2>
+        <ul id="hits"></ul>
+      </div>
+      <div class="panel misses" style="margin-top:18px">
+        <h2>Not matched <span class="count" id="missCount">0</span></h2>
+        <ul id="misses"></ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="cheat">
+    <h3>The language</h3>
+    <table>
+      <tr><td>apple</td><td>contains, case-insensitive — the default</td></tr>
+      <tr><td>apple*pie</td><td><code>*</code> — any run of characters, including none</td></tr>
+      <tr><td>`apple</td><td>backtick at the start — anchor to the beginning</td></tr>
+      <tr><td>apple`</td><td>backtick at the end — anchor to the end</td></tr>
+      <tr><td>`apple`</td><td>both — an exact match</td></tr>
+      <tr><td>apple|pear</td><td><code>|</code> — either alternative</td></tr>
+      <tr><td>\c\`apple`</td><td>options prefix — <code>c</code> makes it case-sensitive</td></tr>
+      <tr><td>\*</td><td>backslash escapes a reserved character</td></tr>
+      <tr><td>\\</td><td>a literal backslash — on its own, it finds labels containing one</td></tr>
+      <tr><td>\c\apple</td><td>the option prefix needs <strong>at least one letter</strong>, so <code>\\</code> above stays an escape</td></tr>
+    </table>
+
+    <h3>Character sets</h3>
+    <table>
+      <tr><td>v[12]-draft</td><td><code>[…]</code> is a <strong>set</strong> — exactly one character from it, here <code>1</code> or <code>2</code></td></tr>
+      <tr><td>x[0-9]y</td><td>sets take ranges: <code>0-9</code>, <code>a-z</code>, <code>A-Za-z</code>, <code>0-9A-F</code></td></tr>
+      <tr><td>[0-9].pdf</td><td>a set may open a pattern — nothing has to precede it</td></tr>
+      <tr><td>`[A-Z]foo</td><td>beside an anchor, with nothing special required</td></tr>
+      <tr><td>bar[456]`</td><td>a set, then the end anchor</td></tr>
+      <tr><td>a\[b\]c</td><td>a literal bracket is escaped</td></tr>
+    </table>
+    <p class="note"><strong>A set is always case-sensitive — a literal is not.</strong> <code>`[A-Z]ocker</code>
+    matches <code>Dockerfile</code> and <code>DOCKERFILE</code> but not <code>dockerfile</code>: the set refuses the
+    lowercase <code>d</code> while the literal folds. Ask for both cases and you get both:
+    <code>[A-Za-z]</code>. <code>\c\</code> governs literals only.</p>
+    <p class="note"><strong>A backtick is an anchor and nothing else</strong> — first character, last character, or a
+    mistake. Until 2026-09-22 it delimited sets too, and that one overload caused every confusion this language ever
+    had; brackets ended it, along with an entire section of the specification.</p>
+
+    <h3>Groups</h3>
+    <table>
+      <tr><td>`||a|b||`</td><td><code>||…||</code> groups alternatives — here <strong>exactly</strong> <code>a</code> or <code>b</code></td></tr>
+      <tr><td>*.||md|txt||</td><td>the shared part is written once, not once per alternative</td></tr>
+      <tr><td>`||src|test||/</td><td>an anchor belongs to the alternative, so it reaches every branch</td></tr>
+      <tr><td>a\|\|b</td><td>a literal <code>||</code> is escaped, exactly as a literal <code>|</code> always was</td></tr>
+    </table>
+    <p class="note"><strong>A group does not nest, and three or more <code>|</code> in a row is an error rather than a
+    guess.</strong> That one rule is also why two groups cannot touch — <code>||a|b||||c|d||</code> is a run of four, so
+    put a character between them — and why an empty group cannot be written at all. An unclosed <code>||</code> is
+    refused too, so a half-typed pattern hides nothing.</p>
+    <h3>Options</h3>
+    <table>
+      <tr><td>\c\apple</td><td>case-sensitive literals</td></tr>
+      <tr><td>\-\test</td><td><strong>not</strong> — hide every label the pattern finds</td></tr>
+      <tr><td>\b\app</td><td><strong>whole word</strong> — <code>app</code>, <code>app-1</code>, <code>my app</code>, <code>app_data</code>; not <code>apple</code></td></tr>
+      <tr><td>\c-b\App</td><td>they compose, in any order</td></tr>
+    </table>
+    <p class="note">A <strong>boundary</strong> is the edge of the label or a neighbouring character that is not a letter
+    or a number — so <code>_</code> separates words, which regex's own <code>\b</code> gets wrong for filenames. And
+    <code>\-\</code> is an <em>exclusion</em> filter: <code>\-\a|b</code> is NOT (a OR b). <em>Apple but not
+    test</em> needs two filters, by design.</p>
+
+    <p class="note"><code>`a|b`</code> is <strong>refused</strong>. Anchors bind to the alternative they are written in,
+    so it used to mean <em>starts with a</em> OR <em>ends with b</em> while reading like <em>exactly a or b</em>. Write
+    <code>`||a|b||`</code> for the reading you expect.</p>
+
+    <p class="note">Six characters are reserved and nothing else is special: <code>*</code> <code>|</code> <code>`</code> <code>\</code> <code>[</code> <code>]</code>.
+    An unparseable pattern <strong>hides nothing</strong> — it matches everything and says why, rather than
+    silently emptying the list.</p>
+  </div>
+</div>
+
+<script type="module">
+import { compileLabelFilter } from '../src/index.js'
+
+const SAMPLE = [
+  'apple pie', 'Apple Pie', 'APPLE PIE', 'apple-and-pear-pie', 'applepie',
+  'apple', 'green apple', 'pineapple', 'apples',
+  'pear pie', 'banana pie', 'cherry tart',
+  'Dockerfile', 'docker-compose.yml', 'README.md', 'package.json',
+  'src/index.js', 'src/query/types.ts', 'test/conformance.mjs',
+  'invoice-2026-01.pdf', 'invoice-2026-02.pdf', 'invoice-2026-11.pdf', 'receipt-2026-01.pdf',
+  'IMG_0421.HEIC', 'IMG_0422.HEIC', 'IMG_0423.HEIC', 'notes.txt',
+  'v1-draft.md', 'v2-draft.md', 'v10-draft.md',
+  '#fff', '#0f0', '#0f172a', '#zzz',
+  'C:\\Users\\steven\\notes.txt', 'share\\report.pdf', 'notes *draft*.md',
+  '[WIP] roadmap.md', '[2026] budget.xlsx',
+]
+
+// **Every example here is exercised against the SAMPLE above, and each one is chosen because it
+// SPLITS the list.** A preset that matched everything or nothing would look like it worked while
+// demonstrating nothing — the reason `[A-Z]` and `[A-Za-z]` are both present is precisely that the
+// first one is strict about case and the second is not.
+const PRESET_GROUPS = [
+  {
+    caption: 'Basics',
+    items: [
+      { p: 'apple', why: 'contains <code>apple</code>, case-insensitive — the default' },
+      { p: 'apple*pie', why: '<code>apple</code>, any run of characters, then <code>pie</code>' },
+      { p: '`apple', why: 'starts with <code>apple</code>' },
+      { p: 'apple`', why: 'ends with <code>apple</code>' },
+      { p: '`apple`', why: 'exactly <code>apple</code>' },
+      { p: 'apple|pear', why: 'either alternative' },
+      { p: '\\c\\`apple`', why: 'case-sensitive, exactly <code>apple</code> — <code>Apple</code> is out' },
+      { p: '*.pdf', why: 'anything, then <code>.pdf</code>' },
+      { p: 'invoice*|receipt*', why: 'two alternatives, each with a wildcard' },
+      { p: 'src/*.ts', why: 'a wildcard between two literals' },
+      { p: '\\*', why: 'a literal <code>*</code> — the backslash escapes it' },
+      { p: '\\\\', why: 'a literal backslash, so this finds the labels that contain one. It is <strong>not</strong> an empty option prefix — that reading made it match every label, fixed 2026-09-22' },
+    ],
+  },
+  {
+    caption: '<b>Character sets</b> — <code>[…]</code> matches exactly one character from it',
+    items: [
+      { p: 'v[12]-draft', why: '<code>v</code>, one of <code>1</code> or <code>2</code>, then <code>-draft</code> — <code>v10-draft.md</code> is out, because a set consumes exactly one character' },
+      { p: 'IMG_042[12]', why: 'a set at the end of the pattern, matched anywhere in the label — <code>IMG_0423</code> is out' },
+      { p: '[0-9].pdf', why: 'a <strong>range</strong>: one digit, then <code>.pdf</code>. Before 2026-09-22 this needed a <code>*</code> in front of it, because a set could not open a pattern' },
+      { p: '`[A-Z]', why: 'start anchor, then a set — an uppercase first letter, and <strong>only</strong> uppercase: a set is always case-sensitive' },
+      { p: '`[A-Z]ocker', why: 'both halves of that rule in one pattern — the set refuses a lowercase <code>d</code>, while the literal <code>ocker</code> still folds and matches <code>DOCKERFILE</code>' },
+      { p: '`[A-Za-z]', why: 'a set accepts both cases when it says so — which is why folding one was pure loss' },
+      { p: '`#[0-9a-f][0-9a-f][0-9a-f]`', why: 'anchored both ends: <code>#</code> and exactly three hex digits. <code>#zzz</code> fails the set, <code>#0f172a</code> fails the length' },
+      { p: '[0-9]`', why: 'a set, then the end anchor — ends with a digit' },
+      { p: '`\\[WIP\\]', why: 'a literal bracket, escaped — the whole tax for taking <code>[</code> and <code>]</code> as delimiters, and it falls only on labels that contain one' },
+    ],
+  },
+  {
+    caption: '<b>Groups</b> — <code>||…||</code> around alternatives, so the shared part is written once',
+    items: [
+      { p: '`||apple|pear||`', why: 'the anchors belong to the alternative, so they reach every branch — exactly <code>apple</code> or exactly <code>pear</code>. This is the pattern <code>`apple|pear`</code> was always trying to be' },
+      { p: '*.||md|txt||', why: 'one wildcard, two extensions — <code>*.md|*.txt</code> without writing the shared part twice' },
+      { p: '`||src|test||/', why: 'starts with <code>src/</code> or <code>test/</code>' },
+      { p: '||invoice|receipt||-2026-0||1|2||', why: 'two groups multiply out to four alternatives at parse time — the matcher never sees a group' },
+      { p: '`IMG_0[0-9]2||1|2||', why: 'a set and a group in one pattern: <code>IMG_0</code>, any digit, <code>2</code>, then <code>1</code> or <code>2</code>' },
+    ],
+  },
+  {
+    caption: '<b>Not and whole word</b> — options, so they govern the whole pattern',
+    items: [
+      { p: '\\-\\.md', why: 'everything that is <strong>not</strong> a markdown file' },
+      { p: '\\-\\invoice|receipt', why: 'an exclusion list — <code>\\-\\a|b</code> is NOT (a OR b)' },
+      { p: '\\b\\apple', why: 'whole word: <code>apple</code>, <code>apple pie</code>, <code>green apple</code>, <code>apple-and-pear-pie</code> — but not <code>apples</code>, <code>applepie</code> or <code>pineapple</code>' },
+      { p: '\\b\\draft', why: 'a boundary is the label edge or any non-alphanumeric character, so <code>*draft*</code> and <code>-draft</code> both count' },
+      { p: '\\-b\\apple', why: 'the two composing — hide the whole-word matches, keep <code>apples</code> and <code>pineapple</code>' },
+      { p: '\\c-b\\IMG', why: 'case-sensitive, whole word, negated — all three at once' },
+    ],
+  },
+  {
+    caption: 'Refused — and a refused pattern <b>hides nothing</b>',
+    items: [
+      { p: '`a|b`', bad: true, why: 'the trap groups exist to replace — an anchor binds to its own alternative, so this read as <em>starts with a</em> OR <em>ends with b</em>. Refused since 2026-09-22; write <code>`||a|b||`</code>' },
+      { p: 'a||b', bad: true, why: 'an unclosed group. Before <code>||</code> meant anything it was an empty alternative, which matched <strong>every</strong> label and said nothing' },
+      { p: '`1``', bad: true, why: 'the shape that used to need a ruling of its own. Now it is simply a backtick in the middle, which an anchor never is — the pattern meant here is <code>[1]`</code>' },
+      { p: 'a`b', bad: true, why: 'the same rule, at its simplest: an anchor is the first or last character or it is a mistake. A literal backtick is <code>\\`</code>' },
+      { p: '[]', bad: true, why: 'an empty set could never match, and a filter that silently matches nothing is the outcome this language exists to avoid' },
+      { p: '\\-\\', bad: true, why: 'negation with nothing to negate hides <strong>every</strong> row — the confident empty, reached from the other side' },
+      { p: 'a|||b', bad: true, why: 'three bars in a row — which two open the group? Refused rather than guessed, and that refusal is what keeps <code>||</code> decidable' },
+      { p: '`123``', bad: true, why: 'one rule refuses this now: a backtick in the middle. It used to need a ruling of its own — the anchor took the first tick and the trailing pair formed an empty set' },
+      { p: '`123`*', bad: true, why: 'the same rule again. Every one of these spellings is still refused, but by one rule instead of three' },
+    ],
+  },
+]
+
+const $pattern = document.getElementById('pattern')
+const $labels = document.getElementById('labels')
+const $hits = document.getElementById('hits')
+const $misses = document.getElementById('misses')
+const $hitCount = document.getElementById('hitCount')
+const $missCount = document.getElementById('missCount')
+const $err = document.getElementById('err')
+const $why = document.getElementById('why')
+
+$labels.value = SAMPLE.join('\n')
+
+// The gloss for a preset, keyed by its pattern, so clicking one says what it is demonstrating —
+// a set is the one part of this language a reader cannot guess from the result alone.
+const WHY = new Map()
+
+for (const group of PRESET_GROUPS) {
+  const wrap = document.createElement('div')
+  wrap.className = 'pgroup'
+  const cap = document.createElement('span')
+  cap.className = 'caption'
+  cap.innerHTML = group.caption
+  const row = document.createElement('div')
+  row.className = 'presets'
+  for (const { p, why, bad } of group.items) {
+    WHY.set(p, why)
+    const b = document.createElement('button')
+    b.textContent = p
+    if (bad) b.className = 'bad'
+    b.onclick = () => { $pattern.value = p; $pattern.focus(); run() }
+    row.append(b)
+  }
+  wrap.append(cap, row)
+  document.getElementById('presets').append(wrap)
+}
+
+function fill(ul, items, emptyText) {
+  ul.replaceChildren()
+  if (!items.length) {
+    const d = document.createElement('div')
+    d.className = 'empty'
+    d.textContent = emptyText
+    ul.append(d)
+    return
+  }
+  for (const s of items) {
+    const li = document.createElement('li')
+    li.textContent = s
+    ul.append(li)
+  }
+}
+
+function run() {
+  const labels = $labels.value.split('\n').filter((s) => s.length > 0)
+  const match = compileLabelFilter($pattern.value)
+
+  $why.innerHTML = WHY.get($pattern.value) || ''
+
+  if (match.error) {
+    $err.className = 'on'
+    $err.innerHTML = `<b>${match.error}</b> — so this pattern hides nothing: every label is shown.`
+  } else {
+    $err.className = ''
+  }
+
+  const hits = labels.filter((s) => match(s))
+  const misses = labels.filter((s) => !match(s))
+
+  fill($hits, hits, 'nothing matched')
+  fill($misses, misses, 'everything matched')
+  $hitCount.textContent = `${hits.length}/${labels.length}`
+  $missCount.textContent = String(misses.length)
+}
+
+$pattern.addEventListener('input', run)
+$labels.addEventListener('input', run)
+run()
+</script>
+</body>
+</html>

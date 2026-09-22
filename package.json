@@ -1,0 +1,34 @@
+{
+  "name": "label-filter",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A small glob-like pattern language for filtering lists of objects by their labels. Parsed to an IR, never compiled to a regex.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "docs/syntax.md",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "npm run test:conformance && npm run test:properties && npm run test:performance",
+    "test:conformance": "node test/conformance.mjs",
+    "test:properties": "LABEL_FILTER_SEED=20260922 LABEL_FILTER_FUZZ_CASES=3000 LABEL_FILTER_EXHAUSTIVE_LENGTH=4 node test/properties.mjs",
+    "test:properties:deep": "LABEL_FILTER_SEED=424242 LABEL_FILTER_FUZZ_CASES=50000 LABEL_FILTER_EXHAUSTIVE_LENGTH=6 node test/properties.mjs",
+    "test:performance": "LABEL_FILTER_PERF_LABELS=2000 LABEL_FILTER_PERF_BUDGET_US_LABEL=60 node test/performance.mjs",
+    "sandbox": "node sandbox/serve.mjs"
+  },
+  "keywords": [
+    "filter",
+    "pattern",
+    "glob",
+    "label",
+    "match"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
