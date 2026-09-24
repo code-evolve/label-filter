@@ -1,17 +1,19 @@
 # Releasing
 
-**`label-filter@0.1.0` went to npm on 2026-09-24.** The other four are not published, and this document
-is what the next release follows.
+**`label-filter@0.2.0` is the current release, on npm 2026-09-24.** Three releases went out that day:
+0.1.0 the first, 0.1.1 to correct a README that said the package was unpublished, and 0.2.0 for the
+breaking refusal of an option section opening an alternative. The other four implementations are not
+published, and this document is what the next release follows.
 
 **Five packages, one of them published.** Everything below is ready for the other four; each still
 holds its own registry's brake, and the brake comes off one package at a time.
 
 | Implementation | Would publish to | State |
 |---|---|---|
-| `js/` | npm, `label-filter` | **published 2026-09-24, `0.1.0`** |
+| `js/` | npm, `label-filter` | **published 2026-09-24, `0.2.0`** |
 | `rust/` | crates.io, `label-filter` | manifest complete, `publish = false` |
 | `python/` | PyPI, `label-filter` | manifest complete, never built |
-| `go/` | pkg.go.dev, by module path | `github.com/code-evolve/label-filter/go`; nothing on the proxy until the repository is pushed and tagged |
+| `go/` | pkg.go.dev, by module path | `github.com/code-evolve/label-filter/go`; the repository is public and tagged as of 2026-09-24, so the proxy will serve it on first request |
 | `php/` | Packagist, `code-evolve/label-filter` | manifest complete, never submitted |
 
 **Each carries the same brake for the same reason** (below): the first publish is what fixes the
@@ -85,6 +87,26 @@ the tool was installed.
    copyright Steven Spungin.
 6. ~~Remove `"private": true`.~~ **Done for 0.1.0**, in its own commit so the brake coming off is
    visible in the history. A later version does not need it again; a NEW package does.
+
+## The repository, and why its hashes differ from yours
+
+**`github.com/code-evolve/label-filter` is public as of 2026-09-24**, carrying all five
+implementations. Its history is **derived**, not the one this phase works in: the paths that are not
+published are filtered out of every commit before the push, so each public commit has a different hash
+from its local original, and the release tags differ with them. `label-filter-0.1.0` is `bf03b55`
+there.
+
+**So publishing a commit is not a `git push`.** This phase's repository has no `origin`, on purpose,
+and `scripts/publish-github.sh` is the publication path: it builds the filtered clone, verifies it,
+pushes the branch and the tags, and prints the remote-side check to run before anything is made
+public. The filter is deterministic, so commits already public keep their hashes and a re-run
+fast-forwards.
+
+The order matters more than the commands. A repository is created **private**, pushed, verified
+against the **remote**, and only then flipped public. That order exists because a public push cannot be
+taken back: setting a repository private afterwards leaves the old commits fetchable by their SHAs,
+which a push has already broadcast, so the remedy is to delete and recreate rather than to rewrite.
+Code-Evolve Governance, *Public Repositories*, carries the rules.
 
 ## The name, and why there is no placeholder holding it
 
