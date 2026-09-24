@@ -1,5 +1,7 @@
 # 0.1.0
 
+Released to npm 2026-09-24 as `label-filter@0.1.0`, tagged `label-filter-0.1.0`.
+
 First release-shaped version. Extracted from Squid Desktop, where the language, its specification and
 its conformance check had lived as three files; Squid Desktop is now the first **consumer**, not the
 owner. Not yet published: see `docs/releasing.md`.

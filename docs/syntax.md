@@ -1285,8 +1285,9 @@ the two strings apart and have a set test the wrong character.
 
 > lets use `[` and `]` for sets, implement it, and also the negation, and boundary using B
 
-This is a breaking change, taken deliberately while it was free: the package is unpublished and
-`private: true`, the name is unclaimed, and the one consumer stages the module at build time.
+This is a breaking change, taken deliberately while it was free: at the time the package was
+unpublished and `private: true`, the name was unclaimed, and the one consumer staged the module at
+build time. Version 0.1.0 followed on 2026-09-24, so this was the last such change that cost nothing.
 
 ### A backtick is an anchor, and nothing else
 

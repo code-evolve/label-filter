@@ -27,9 +27,9 @@ yarn add label-filter
 npm install label-filter
 ```
 
-**Not published yet**, see [`docs/releasing.md`](docs/releasing.md). Until then it is consumed
-locally. **ESM only, no runtime dependencies, TypeScript source with generated declarations**,
-`dist/index.js` and `dist/index.d.ts` come from `npm run build`.
+**Published**: `label-filter@0.1.0` went to npm on 2026-09-24. **ESM only, no runtime dependencies,
+TypeScript source with generated declarations**, `dist/index.js` and `dist/index.d.ts` come from
+`npm run build`.
 
 ## Goals
 
@@ -152,21 +152,23 @@ Node strips the types itself. `npm run typecheck` is what actually checks them, 
 step for a reason, stripping types is not checking them, so a suite can pass while asserting against
 an API that no longer exists.
 
-## Status, staged, not published
+## Status, one of five published
 
-**`"private": true`, so `npm publish` refuses.** That one line is what makes an accidental release
-impossible, and it is the last switch to throw rather than the first.
+**`label-filter@0.1.0` is on npm as of 2026-09-24**, the first release out of this estate. The other
+four implementations (Rust, Python, Go, PHP) are written and pass the same fixture, and each still
+carries its registry's brake until its own first publish.
 
-The manifest is otherwise complete: **MIT**, **Steven Spungin**, and
-`github.com/code-evolve/label-filter`. The holder and the licence were ruled on 2026-09-24, not copied
-from a sibling package, which Code-Evolve Governance forbids. Licence headers, `changelog.md`, `samples/`, the `exports` map, `dry` and
-`prepack` all match them too; the deliberate differences (no build, no CJS entry, hand-written types)
-are listed with their reasons in [`docs/releasing.md`](docs/releasing.md), along with the checklist.
+The manifest is **MIT**, **Steven Spungin**, and `github.com/code-evolve/label-filter`. The holder and
+the licence were ruled on 2026-09-24 and the repository on 2026-09-23, none of them copied from a
+sibling package, which Code-Evolve Governance forbids. Licence headers, `changelog.md`, `samples/`, the
+`exports` map, `dry` and `prepack` all match the reference packages too; the deliberate differences (no
+bundler, no CJS entry, no sourcemaps) are listed with their reasons in
+[`docs/releasing.md`](docs/releasing.md), along with the checklist.
 
-**The name is unclaimed and there is no placeholder holding it.** `label-filter` was free on npm as of
-2026-09-22, and publishing a stub to reserve it would be the wrong protection: the first publish is
-what fixes the identity fields, so a placeholder decides them by default at the moment nobody is
-looking. Losing the name is recoverable; a manifest published with defaults is not.
+**The first publish is what fixed those identity fields, which is why there was never a placeholder
+holding the name.** `label-filter` was free on npm from 2026-09-22 and publishing a stub to reserve it
+would have decided the holder, the licence and the repository by default, at the moment nobody was
+looking. Losing a name is recoverable; a manifest published with defaults is not.
 
 ## Who uses it
 

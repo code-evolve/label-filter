@@ -1,11 +1,14 @@
 # Releasing
 
-**Five packages now, none of them published.** Everything below is ready; the last switch is
-deliberately not thrown.
+**`label-filter@0.1.0` went to npm on 2026-09-24.** The other four are not published, and this document
+is what the next release follows.
+
+**Five packages, one of them published.** Everything below is ready for the other four; each still
+holds its own registry's brake, and the brake comes off one package at a time.
 
 | Implementation | Would publish to | State |
 |---|---|---|
-| `js/` | npm, `label-filter` | manifest complete, `"private": true` |
+| `js/` | npm, `label-filter` | **published 2026-09-24, `0.1.0`** |
 | `rust/` | crates.io, `label-filter` | manifest complete, `publish = false` |
 | `python/` | PyPI, `label-filter` | manifest complete, never built |
 | `go/` | pkg.go.dev, by module path | `github.com/code-evolve/label-filter/go`; nothing on the proxy until the repository is pushed and tagged |
@@ -80,8 +83,8 @@ the tool was installed.
 5. ~~Decide the `repository` field.~~ **Done 2026-09-23**: `github.com/code-evolve/label-filter`, one
    repository for all five implementations. The holder and licence followed on 2026-09-24: MIT,
    copyright Steven Spungin.
-6. **Remove `"private": true`.** This is the only line standing between the tree and `npm publish`,
-   and it is the reason an accidental publish cannot happen today.
+6. ~~Remove `"private": true`.~~ **Done for 0.1.0**, in its own commit so the brake coming off is
+   visible in the history. A later version does not need it again; a NEW package does.
 
 ## The name, and why there is no placeholder holding it
 
