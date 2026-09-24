@@ -1,3 +1,13 @@
+/*
+Copyright 2026 Steven Spungin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 /**
  * The label filter pattern language — `docs/syntax.md`.
  *
@@ -18,6 +28,19 @@
 /** Tokens the matcher walks. `LIT` carries text, `SET` a predicate, `ANY` is `*`. */
 const LIT = 'lit', ANY = 'any', SET = 'set';
 
+/** A literal run of characters, folded for case at compile time when the pattern is insensitive. */
+export interface LitToken { k: typeof LIT; v: string }
+/** `*` — any run of characters, including none. */
+export interface AnyToken { k: typeof ANY }
+/** `[…]` — exactly one character, tested against the RAW label because a set never folds. */
+export interface SetToken { k: typeof SET; test: (ch: string) => boolean }
+/** A token the matcher walks. */
+export type PatternToken = LitToken | AnyToken | SetToken;
+/** `||…||` before it is desugared away. Never reaches the matcher or a caller. */
+interface GroupToken { k: typeof GROUP; branches: PatternToken[][] }
+/** What `tokenise` produces, before `expand` multiplies the groups out. */
+type ParseToken = PatternToken | GroupToken;
+
 /**
  * `GROUP` is the ONE token kind the matcher never sees: a group is desugared during parsing, so an
  * alternative holding a group of n branches becomes n alternatives sharing its anchors. The IR the
@@ -26,24 +49,87 @@ const LIT = 'lit', ANY = 'any', SET = 'set';
  */
 const GROUP = 'group';
 
+/** One alternative of a pattern, with its anchors. Groups are already desugared away. */
+export interface CompiledAlternative {
+  /** Anchored to the start of the label. */
+  start: boolean;
+  /** Anchored to the end of the label. */
+  end: boolean;
+  tokens: PatternToken[];
+  /** Why this alternative could not be read, if it could not be. */
+  error: string | null;
+}
+
+/** What one source alternative parses to, before its groups multiply it out. */
+interface ParsedAlternative {
+  start: boolean;
+  end: boolean;
+  seqs: PatternToken[][];
+  error: string | null;
+}
+
+/** The parsed form, for a caller that wants to inspect or render a pattern. */
+export interface ParsedPattern {
+  /** `\c\` — literals are compared case-sensitively. Sets always are. */
+  caseSensitive: boolean;
+  /** `\-\` — the verdict is inverted. */
+  negate: boolean;
+  /** `\b\` — the match must begin and end on a word boundary. */
+  boundary: boolean;
+  alts: CompiledAlternative[];
+  /** The pattern-level refusal, if the pattern could not be read. */
+  error: string | null;
+}
+
+/**
+ * The label under match, carried twice: folded for literals, raw for sets and boundaries — both as
+ * code-point arrays, so `raw[i]` and `text[i]` are the same character.
+ */
+interface MatchContext {
+  raw: string[];
+  text: string[];
+  boundary: boolean;
+}
+
+/**
+ * A compiled matcher.
+ *
+ * **When `error` is a string the matcher returns `true` for every label**, so an unreadable pattern
+ * hides nothing and the caller can show the reason. This holds under `\-\` as well: negation never
+ * inverts a refusal.
+ */
+export interface LabelMatcher {
+  (label: unknown): boolean;
+  error: string | null;
+}
+
 /** Groups multiply, so an alternative is capped rather than allowed to explode on a keystroke. */
 const MAX_SEQUENCES = 64;
 
 /**
- * Every option `\…\` accepts. An unknown one is refused, never ignored.
+ * Every instruction `\…\` accepts: `c` case-sensitive, `-` not, `b` word boundary.
  *
- * `c` case-sensitive · `-` not · `b` word boundary. **`-` is not a letter**, and the option section
- * widened to admit it on purpose: `-` is what everything from Google to a package manager already
- * uses for *exclude*, it needs no shift key, and it is a real key on every keyboard layout.
+ * **`\…\` at the start of a pattern is the instruction namespace**, and it is deliberately wider
+ * than the three instructions that exist: a section of letters, digits and `-` is READ as an
+ * instruction section and refused when it names nothing, rather than falling through to the escape
+ * rules. That is what makes a future instruction addable without changing the meaning of any pattern
+ * that works today — `\v2\foo` is already an error, so it is free to claim.
+ *
+ * It claims no more than that. `\.foo\.bar` and `\ a\ b` are literals and must stay literals, so
+ * punctuation is NOT part of the namespace; an instruction that needs `=` or `,` claims it then, and
+ * pays for it then. Ruled 2026-09-23.
  */
-const OPTIONS = 'c-b';
+const INSTRUCTIONS = 'c-b';
+
+/** What may appear in an instruction section — claimed whole, so an unknown one is a named error. */
+const INSTRUCTION_SECTION = /^[A-Za-z0-9-]+$/;
 
 /** Letters and numbers in any script. Definition B of a word boundary rests on this and nothing else. */
 const ALNUM = /[\p{L}\p{N}]/u;
-const isAlnum = (ch) => ch !== undefined && ALNUM.test(ch);
+const isAlnum = (ch: string | undefined): boolean => ch !== undefined && ALNUM.test(ch);
 
 /**
- * A word boundary, **definition B** (Steven, 2026-09-22): the edge of the label, or a neighbouring
+ * A word boundary, **definition B** (ruled 2026-09-22): the edge of the label, or a neighbouring
  * character that is not a letter or a number.
  *
  * Regex's `\b` was the obvious choice and it is wrong for labels: it counts `_` as a word character,
@@ -51,8 +137,38 @@ const isAlnum = (ch) => ch !== undefined && ALNUM.test(ch);
  * a regex thinks. The test looks only at the NEIGHBOURING character, never at the matched text, so
  * it stays decidable by reading one character.
  */
-const startsAtBoundary = (raw, at) => at === 0 || !isAlnum(raw[at - 1]);
-const endsAtBoundary = (raw, at) => at === raw.length || !isAlnum(raw[at]);
+const startsAtBoundary = (raw: string[], at: number): boolean => at === 0 || !isAlnum(raw[at - 1]);
+const endsAtBoundary = (raw: string[], at: number): boolean => at === raw.length || !isAlnum(raw[at]);
+
+/**
+ * **A backslash may escape anything except an ASCII letter or digit**, in a set body and in the
+ * pattern body alike.
+ *
+ * Punctuation, symbols and every non-ASCII character — an accent, an emoji — are literals with or
+ * without the backslash, so escaping them is harmless and allowed. A LETTER after a backslash is the
+ * problem: `\n`, `\d`, `\w`, `\b` are classes to anyone who has met a regular expression, and would
+ * quietly mean the letter here. Refusing them is the same ruling as refusing an unknown option, and a
+ * whitelist of punctuation beats a blacklist of `d w s b n t` because the surface stays teachable.
+ *
+ * Ruled 2026-09-23: first as "only \\ \] \-", then widened the same day when unicode and emoji had to
+ * be escapable too — which this states without carrying a list.
+ */
+const ESCAPABLE = /[^A-Za-z0-9]/;
+
+/** The one refusal, shared by the pattern body and a set body. */
+const ESCAPE_ERROR =
+  'a letter or digit cannot be escaped — \\d, \\n and \\b mean a class in a regular expression and nothing here; drop the backslash, or use \\c\\ \\-\\ \\b\\ at the start for an option';
+
+function setEscapeError(body: string): string | null {
+  const cp = Array.from(body);
+  for (let i = 0; i < cp.length; i++) {
+    if (cp[i] !== '\\') continue;
+    const next = cp[i + 1];
+    if (next === undefined || !ESCAPABLE.test(next)) return ESCAPE_ERROR;
+    i++;
+  }
+  return null;
+}
 
 /// A character-set body — `123`, `0-9`, `A-Za-z`, `0-9A-F` — as a membership test.
 ///
@@ -62,19 +178,24 @@ const endsAtBoundary = (raw, at) => at === raw.length || !isAlnum(raw[at]);
 ///
 /// An **escaped** `-` is always a literal too: `[a\-z]` is three characters, not a range. That is
 /// the only way to ask for a literal dash between two others.
-function charsetTest(body) {
-  const atoms = [];
-  for (let i = 0; i < body.length; i++) {
-    if (body[i] === '\\' && i + 1 < body.length) { atoms.push({ ch: body[i + 1], escaped: true }); i++; continue; }
-    atoms.push({ ch: body[i], escaped: false });
+function charsetTest(body: string): (ch: string) => boolean {
+  const atoms: Array<{ ch: string; escaped: boolean }> = [];
+  // **Code points, not code units.** A set holding an emoji stored two half-surrogates here and then
+  // never matched the whole character the matcher handed it — the other half of the 2026-09-23 astral
+  // fix, and the half that made every emoji set answer false rather than merely wrong.
+  const cp = Array.from(body);
+  for (let i = 0; i < cp.length; i++) {
+    if (cp[i] === '\\' && i + 1 < cp.length) { atoms.push({ ch: cp[i + 1], escaped: true }); i++; continue; }
+    atoms.push({ ch: cp[i], escaped: false });
   }
-  const ranges = [];
-  const singles = new Set();
+  const ranges: Array<[number, number]> = [];
+  const singles = new Set<string>();
   for (let i = 0; i < atoms.length; i++) {
     const dash = atoms[i + 1];
     const upper = atoms[i + 2];
     if (dash && !dash.escaped && dash.ch === '-' && upper) {
-      ranges.push([atoms[i].ch.codePointAt(0), upper.ch.codePointAt(0)]);
+      // `ch` is always exactly one character here, so both code points exist.
+      ranges.push([atoms[i].ch.codePointAt(0) as number, upper.ch.codePointAt(0) as number]);
       i += 2;
     } else {
       singles.add(atoms[i].ch);
@@ -82,7 +203,7 @@ function charsetTest(body) {
   }
   return (ch) => {
     if (singles.has(ch)) return true;
-    const c = ch.codePointAt(0);
+    const c = ch.codePointAt(0) as number;
     return ranges.some(([lo, hi]) => c >= lo && c <= hi);
   };
 }
@@ -96,7 +217,7 @@ function charsetTest(body) {
  * run of three. Guessing which bars in `a|||b` open a group is how a filter silently answers a
  * different question.
  */
-function hasBarRun(s) {
+function hasBarRun(s: string): boolean {
   let run = 0;
   for (let i = 0; i < s.length; i++) {
     if (s[i] === '\\') { i++; run = 0; continue; }
@@ -112,8 +233,8 @@ function hasBarRun(s) {
  * is also why a group cannot nest** — the middle `||` of `||a||b||` closes rather than opens, so
  * what follows is a second group left hanging, reported here as unclosed.
  */
-function splitAlternatives(s) {
-  const alts = [];
+function splitAlternatives(s: string): { alts: string[]; unclosed: boolean } {
+  const alts: string[] = [];
   let cur = '';
   let inGroup = false;
   for (let i = 0; i < s.length; i++) {
@@ -137,7 +258,7 @@ function splitAlternatives(s) {
  * than it was written with. `error` is the pattern-level refusal; per-alternative refusals stay on
  * the alternative, and `compileLabelFilter` surfaces whichever comes first.
  */
-export function parsePattern(pattern) {
+export function parsePattern(pattern: string): ParsedPattern {
   let rest = String(pattern);
   let caseSensitive = false;
   let negate = false;
@@ -145,22 +266,22 @@ export function parsePattern(pattern) {
 
   // `\options\...` — only when a SECOND unescaped backslash exists. Without one, a leading `\` is
   // an ordinary escape (`\*foo`), not a malformed option section.
-  let optionError = null;
+  let optionError: string | null = null;
   if (rest.startsWith('\\')) {
     const end = rest.indexOf('\\', 1);
     // **At least ONE option character, and only option characters.** `\*` is an escaped asterisk and
     // must not be read as an option named `*` — and `\\` is an escaped backslash (§9), NOT an empty
-    // option section. Accepting the empty section is a bug Steven reported 2026-09-22: `\\` stripped
+    // option section. Accepting the empty section was a bug reported 2026-09-22: `\\` stripped
     // itself to the empty pattern and matched EVERY label, where a lone `\` correctly matched labels
     // containing a backslash.
-    if (end > 0 && /^[A-Za-z-]+$/.test(rest.slice(1, end))) {
+    if (end > 0 && INSTRUCTION_SECTION.test(rest.slice(1, end))) {
       const opts = rest.slice(1, end);
       // An option nobody implements must not be ignored. §10 keeps the namespace open, and until a
       // letter means something, silently dropping it would answer a question the pattern did not
       // ask — and `\d\foo` has a second reading (the literal `dfoo`) that makes guessing worse.
-      const unknown = [...opts].filter((ch) => !OPTIONS.includes(ch));
+      const unknown = [...opts].filter((ch) => !INSTRUCTIONS.includes(ch));
       if (unknown.length) {
-        optionError = `unknown option ${unknown.join('')} — the options are c (case-sensitive), - (not) and b (word boundary); a literal backslash is \\\\`;
+        optionError = `unknown instruction ${unknown.join('')} — the instructions are c (case-sensitive), - (not) and b (word boundary); a literal backslash is \\\\`;
       }
       caseSensitive = opts.includes('c');
       negate = opts.includes('-');
@@ -172,7 +293,7 @@ export function parsePattern(pattern) {
   const split = splitAlternatives(rest);
   const parsed = split.alts.map(parseAlternative);
 
-  let error = null;
+  let error: string | null = null;
   if (optionError) {
     error = optionError;
   } else if (hasBarRun(rest)) {
@@ -216,7 +337,7 @@ export function parsePattern(pattern) {
 }
 
 /** Whether the last character of `s` is an unescaped backtick — the end anchor. */
-function endsWithAnchor(s) {
+function endsWithAnchor(s: string): boolean {
   for (let i = 0; i < s.length; i++) {
     if (s[i] === '\\') { i++; continue; }
     if (s[i] === '`' && i === s.length - 1) return true;
@@ -231,7 +352,7 @@ function endsWithAnchor(s) {
  * `[…]` on 2026-09-22 there is nothing else a backtick can be, so this needs no pairing, no parity
  * and no lookahead: first character, last character, or a mistake. A literal backtick is `` \` ``.
  */
-function parseAlternative(src) {
+function parseAlternative(src: string): ParsedAlternative {
   let s = src;
   let start = false;
   let end = false;
@@ -245,7 +366,7 @@ function parseAlternative(src) {
 }
 
 /** Index of the unescaped `ch` at or after `from`, or -1. */
-function findUnescaped(s, from, ch) {
+function findUnescaped(s: string, from: number, ch: string): number {
   for (let i = from; i < s.length; i++) {
     if (s[i] === '\\') { i++; continue; }
     if (s[i] === ch) return i;
@@ -254,7 +375,7 @@ function findUnescaped(s, from, ch) {
 }
 
 /** Index of the unescaped `||` closing a group opened at `from`, or -1. */
-function findGroupClose(s, from) {
+function findGroupClose(s: string, from: number): number {
   for (let i = from; i < s.length; i++) {
     if (s[i] === '\\') { i++; continue; }
     if (s[i] === '|' && s[i + 1] === '|') return i;
@@ -263,8 +384,8 @@ function findGroupClose(s, from) {
 }
 
 /** Split a group body on its single `|` — it can hold no `||`, since the first one closed it. */
-function splitBranches(s) {
-  const out = [];
+function splitBranches(s: string): string[] {
+  const out: string[] = [];
   let cur = '';
   for (let i = 0; i < s.length; i++) {
     if (s[i] === '\\' && i + 1 < s.length) { cur += s[i] + s[i + 1]; i++; continue; }
@@ -275,14 +396,19 @@ function splitBranches(s) {
   return out;
 }
 
-function tokenise(s) {
-  const out = [];
+function tokenise(s: string): { tokens: ParseToken[]; error: string | null } {
+  const out: ParseToken[] = [];
   let lit = '';
   const flush = () => { if (lit) { out.push({ k: LIT, v: lit }); lit = ''; } };
-  const refuse = (error) => { flush(); return { tokens: out, error }; };
+  const refuse = (error: string) => { flush(); return { tokens: out, error }; };
   for (let i = 0; i < s.length; i++) {
     const ch = s[i];
-    if (ch === '\\' && i + 1 < s.length) { lit += s[i + 1]; i++; continue; }
+    if (ch === '\\' && i + 1 < s.length) {
+      if (!ESCAPABLE.test(s[i + 1])) return refuse(ESCAPE_ERROR);
+      lit += s[i + 1];
+      i++;
+      continue;
+    }
     if (ch === '*') { flush(); out.push({ k: ANY }); continue; }
     if (ch === '|' && s[i + 1] === '|') {
       const close = findGroupClose(s, i + 2);
@@ -291,14 +417,17 @@ function tokenise(s) {
       // nothing is the one outcome this language refuses to produce.
       if (close === -1) return refuse('unclosed || group — a group is ||…||, and a literal bar is \\|');
       const body = s.slice(i + 2, close);
-      const branches = [];
+      const branches: PatternToken[][] = [];
       for (const branch of splitBranches(body)) {
         // Also unreachable: an empty group or an empty branch cannot be spelled without a run of
         // three bars, which `hasBarRun` has already refused.
         if (branch === '') return refuse('empty alternative inside a || group');
         const sub = tokenise(branch);
         if (sub.error) return refuse(sub.error);
-        branches.push(sub.tokens);
+        // **A branch cannot hold a group**: the first unescaped `||` after the opener CLOSES this
+        // one, so `findGroupClose` has already bounded the body before any nested opener could be
+        // read. That is what makes this cast sound rather than convenient.
+        branches.push(sub.tokens as PatternToken[]);
       }
       flush();
       out.push({ k: GROUP, branches });
@@ -312,6 +441,8 @@ function tokenise(s) {
       // **An empty set can never match, so it is refused rather than served.** A filter that hides
       // every row for an unstatable reason is the exact failure the error channel exists for.
       if (body === '') return refuse('empty set [] — a set needs characters, and a literal bracket is \\[');
+      const badEscape = setEscapeError(body);
+      if (badEscape) return refuse(badEscape);
       flush();
       out.push({ k: SET, test: charsetTest(body) });
       i = close;
@@ -335,19 +466,19 @@ function tokenise(s) {
  * and what makes the cost of a group visible at parse time, where it can be refused, instead of
  * per label at match time, where it cannot.
  */
-function expand(tokens) {
-  let seqs = [[]];
+function expand(tokens: ParseToken[]): { seqs: PatternToken[][]; error: string | null } {
+  let seqs: PatternToken[][] = [[]];
   for (const t of tokens) {
     if (t.k !== GROUP) {
       seqs = seqs.map((seq) => seq.concat([t]));
       continue;
     }
-    const next = [];
+    const next: PatternToken[][] = [];
     for (const seq of seqs) {
       for (const branch of t.branches) next.push(seq.concat(branch));
     }
     if (next.length > MAX_SEQUENCES) {
-      return { error: `too many combinations — || groups multiply, and this is over ${MAX_SEQUENCES}; use separate filters` };
+      return { seqs: [[]], error: `too many combinations — || groups multiply, and this is over ${MAX_SEQUENCES}; use separate filters` };
     }
     seqs = next;
   }
@@ -364,15 +495,38 @@ function expand(tokens) {
  * a case-insensitive match nobody has asked for and keeps the two strings aligned for every label
  * that exists.
  */
-function foldChar(ch) {
+function foldChar(ch: string): string {
   const lower = ch.toLowerCase();
   return lower.length === ch.length ? lower : ch;
 }
 
-function fold(s) {
+function fold(s: string): string {
   let out = '';
   for (const ch of s) out += foldChar(ch);
   return out;
+}
+
+/**
+ * A string as **code points**, which is the unit every index in this algorithm means.
+ *
+ * **JavaScript strings index by UTF-16 code unit, and that made this the one implementation that got
+ * astral characters wrong.** A set consumed half of an emoji, so `x[😀]y` did not match `x😀y` while
+ * Rust, Python, Go and PHP — which all index by code point — matched it. Worse than failing: the
+ * unanchored scan sometimes found a half-surrogate and answered TRUE. Fixed 2026-09-23 by walking code
+ * points here too, and the fixture now carries astral cases so no implementation can drift back.
+ */
+const codePoints = (s: string): string[] => Array.from(s);
+
+/** A token as the matcher walks it: a literal is code points, so one index is one character. */
+type RuntimeToken =
+  | { k: typeof LIT; cp: string[] }
+  | { k: typeof ANY }
+  | { k: typeof SET; test: (ch: string) => boolean };
+
+interface RuntimeAlternative {
+  start: boolean;
+  end: boolean;
+  tokens: RuntimeToken[];
 }
 
 /**
@@ -387,7 +541,7 @@ function fold(s) {
  * arrived there, so a failed pair is recorded and never re-walked, which makes the worst case
  * O(tokens × label) — the same 80-character case then measures under a millisecond.
  */
-function matchAt(tokens, ti, ctx, at, mustEnd, failed, width) {
+function matchAt(tokens: RuntimeToken[], ti: number, ctx: MatchContext, at: number, mustEnd: boolean, failed: Uint8Array, width: number): boolean {
   if (ti === tokens.length) {
     if (mustEnd) return at === ctx.text.length;
     // Under `\b\` the match must end on a boundary as well as begin on one; `matchAlternative`
@@ -399,9 +553,10 @@ function matchAt(tokens, ti, ctx, at, mustEnd, failed, width) {
   const t = tokens[ti];
   let ok = false;
   if (t.k === LIT) {
-    ok = ctx.text.startsWith(t.v, at) && matchAt(tokens, ti + 1, ctx, at + t.v.length, mustEnd, failed, width);
+    ok = startsWithAt(ctx.text, t.cp, at)
+      && matchAt(tokens, ti + 1, ctx, at + t.cp.length, mustEnd, failed, width);
   } else if (t.k === SET) {
-    // **A set is always case-sensitive, so it reads the raw label** — Steven, 2026-09-22.
+    // **A set is always case-sensitive, so it reads the raw label** — ruled 2026-09-22.
     ok = at < ctx.raw.length && t.test(ctx.raw[at])
       && matchAt(tokens, ti + 1, ctx, at + 1, mustEnd, failed, width);
   } else {
@@ -414,7 +569,16 @@ function matchAt(tokens, ti, ctx, at, mustEnd, failed, width) {
   return ok;
 }
 
-function matchAlternative(alt, ctx) {
+/** Whether `needle` sits in `text` at `at`, compared one code point at a time. */
+function startsWithAt(text: string[], needle: string[], at: number): boolean {
+  if (at + needle.length > text.length) return false;
+  for (let i = 0; i < needle.length; i++) {
+    if (text[at + i] !== needle[i]) return false;
+  }
+  return true;
+}
+
+function matchAlternative(alt: RuntimeAlternative, ctx: MatchContext): boolean {
   // One table per (alternative, label). The unanchored scan below shares it deliberately: a `(ti,
   // at)` pair that failed from one start position fails from every other one too.
   const width = ctx.text.length + 1;
@@ -431,8 +595,8 @@ function matchAlternative(alt, ctx) {
 /**
  * Compile a pattern once into `label => boolean`.
  *
- * **A literal folds; a set never does** — Steven, 2026-09-22: *"sets should always be case
- * sensitive, yes?"* Yes, and the asymmetry is not an inconsistency. A literal has no other spelling,
+ * **A literal folds; a set never does** — ruled 2026-09-22, and the asymmetry is not an
+ * inconsistency. A literal has no other spelling,
  * so folding it is the only way `apple` can mean what everyone means by it. A set does have another
  * spelling: `[A-Za-z]` says *either case* explicitly, and `[Aa]` says it for one letter. So folding
  * a set DESTROYED the only thing a set is for — with it, `[A-Z]`, `[a-z]` and `[A-Za-z]` were three
@@ -440,26 +604,32 @@ function matchAlternative(alt, ctx) {
  * pattern to `\c\`, which hardens every literal with it. Not folding loses nothing, because the
  * wider set is always writable.
  */
-export function compileLabelFilter(pattern) {
+export function compileLabelFilter(pattern: string): LabelMatcher {
   const p = parsePattern(pattern);
   const error = p.error || p.alts.map((a) => a.error).find(Boolean) || null;
-  const alts = p.caseSensitive
-    ? p.alts
-    : p.alts.map((a) => ({
-        ...a,
-        tokens: a.tokens.map((t) => (t.k === LIT ? { ...t, v: fold(t.v) } : t)),
-      }));
-  const match = (label) => {
+  // The runtime form: literals folded unless `\c\`, and every literal as code points so that one
+  // index is one character — the same unit the raw label is walked in.
+  const alts: RuntimeAlternative[] = p.alts.map((a) => ({
+    start: a.start,
+    end: a.end,
+    tokens: a.tokens.map((t): RuntimeToken =>
+      t.k === LIT ? { k: LIT, cp: codePoints(p.caseSensitive ? t.v : fold(t.v)) } : t),
+  }));
+  const match = ((label: unknown): boolean => {
     // **An unparseable pattern hides nothing, and `\-\` does not get to invert that.** Filtering on
     // a pattern we could not read would remove rows for a reason nobody can see — the confident
     // empty, at the one control whose job is to decide what you are shown. Negating it would turn
     // the safe answer into the worst one, hiding EVERY row over a typo.
     if (error) return true;
-    const raw = String(label == null ? '' : label);
-    const ctx = { raw, text: p.caseSensitive ? raw : fold(raw), boundary: p.boundary };
+    const raw = codePoints(String(label == null ? '' : label));
+    const ctx: MatchContext = {
+      raw,
+      text: p.caseSensitive ? raw : raw.map(foldChar),
+      boundary: p.boundary,
+    };
     const hit = alts.some((a) => matchAlternative(a, ctx));
     return p.negate ? !hit : hit;
-  };
+  }) as LabelMatcher;
   match.error = error;
   return match;
 }

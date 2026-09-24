@@ -1,150 +1,116 @@
 # label-filter
 
-A small pattern language for filtering lists of objects **by their labels**.
+A small pattern language for filtering lists of objects **by their labels**, in five languages, held
+to one specification by one test fixture.
 
 A plain word is a case-insensitive *contains*, which is the whole point of the default: the common
-search costs no syntax. Wildcards, anchors, character sets and alternation are there for when the
-common search is not enough.
+search costs no syntax. Wildcards, anchors, character sets, alternation, grouping, whole-word matching
+and exclusion are there for when it is not enough.
 
-```js
-import { compileLabelFilter } from 'label-filter'
-
-const match = compileLabelFilter('invoice*|receipt*')
-files.filter(match)
+```
+apple                 contains, case-insensitive: the default
+apple*pie             * is any run of characters
+`apple  apple`        anchored to the start / to the end
+[0-9].pdf             one character from a set: [a-z], [A-Za-z], [0-9A-F]
+*.||md|txt||          a group, so a shared part is written once
+\b\app                whole word: app, app-1, my app, app_data: not apple
+\-\test               not: hide every label the pattern finds
 ```
 
-## Goals
+The full specification is [`docs/syntax.md`](docs/syntax.md); its §1.1 records the four goals every
+change is argued against.
 
-Steven, 2026-09-22, verbatim: *"my goals were easy to learn, easy to type, easy to view, and complete
-enough for most needs."* They are the tie-breaker for anything proposed later, so they are recorded —
-with what serves each and what strains it — in [§1.1 Design goals](docs/syntax.md).
+## One language, five implementations
 
-The short version: the default carries *easy to learn* and *easy to type*, because the common search
-costs no syntax. The backtick used to carry the strain — start anchor, end anchor *and* set delimiter,
-which is where every confusion in this language came from — until sets moved into `[…]` on 2026-09-22
-and left it doing one job. Negation and whole-word matching arrived the same day.
+| | Package | Runs the fixture with |
+|---|---|---|
+| **TypeScript** | [`js/`](js), npm, ESM, no runtime dependencies | `node js/test/conformance.ts` |
+| **Rust** | [`rust/`](rust), no dependencies, none for tests either | `cd rust && cargo test` |
+| **Python** | [`python/`](python), ≥3.9, standard library only | `python3 python/tests/test_conformance.py` |
+| **Go** | [`go/`](go), standard library only | `cd go && go test ./...` |
+| **PHP** | [`php/`](php), ≥7.4, standard library only | `php php/tests/conformance.php` |
 
-## The language, in nine lines
-
-| Pattern | Means |
-|---|---|
-| `apple` | contains, case-insensitive — the default |
-| `apple*pie` | `*` is any run of characters, including none |
-| `` `apple `` | anchored to the start |
-| `` apple` `` | anchored to the end |
-| `` `apple` `` | both — an exact match |
-| `apple\|pear` | either alternative |
-| `[abc]` | one character from a set — `[0-9]`, `[a-z]` |
-| `` \c\`apple` `` | options prefix; `c` makes the pattern case-sensitive |
-| `\*` | a backslash escapes a reserved character |
-
-**Six characters are reserved and nothing else is special:** `*` `|` `` ` `` `\` `[` `]`.
-
-## Sets, groups and options
-
-```text
-foo[123]bar      one character from 123 — sets take ranges too: [0-9], [a-z], [A-Za-z], [0-9A-F]
-`[123]bar        beside an anchor, with nothing special required
-*.||md|txt||     ||…|| groups alternatives, so a shared part is written once, not once each
-`||a|b||`        exactly a, or exactly b — an anchor reaches every branch of the group
-\-\test          not — hide every label the pattern finds
-\b\app          whole word — app, app-1, my app, app_data; not apple or snapple
-\c-b\App        options compose
+```shell
+conformance/run-all.sh     # every implementation, same fixture, one summary
 ```
 
-**A set is always case-sensitive, even in the default case-insensitive mode**, because a set is the
-one construct that can say *either case* explicitly — `[A-Za-z]` — while nothing else could say
-*this case only*. `\c\` governs literals.
+**The point is not five ports. It is that they cannot disagree quietly.**
+[`conformance/cases.json`](conformance/cases.json) holds 53 cases lifted from numbered sections of the
+specification, 21 patterns that must be *refused*, and 29 fragments of junk that must not crash
+anything, 292 assertions. Every implementation runs that same file, and each prints the same line:
 
-**A backtick is an anchor and nothing else**: first character, last character, or a mistake. A group
-does not nest, three or more `|` in a row is refused rather than guessed at, and `` `a|b` `` is
-refused outright — an anchor binds to the alternative it is written in, so that spelling meant
-*starts with `a`* OR *ends with `b`* while reading like *exactly `a` or `b`*.
+```
+  TypeScript  ok: 53 spec cases, 292 assertions, no pattern throws
+  Rust        ok: 53 spec cases, 292 assertions, no pattern panics
+  Python      ok: 53 spec cases, 292 assertions, no pattern raises
+  Go          ok: 53 spec cases, 292 assertions, no pattern panics
+  PHP         ok: 53 spec cases, 292 assertions, no pattern throws
+```
 
-**A word boundary is the edge of the label or a neighbouring character that is not a letter or a
-number**, so `_` separates words — which regex's own `\b` gets wrong for filenames. And `\-\` is an
-*exclusion* filter: `\-\a|b` is NOT (a OR b). *Apple but not test* needs two filters, by design.
+The fixture is the authority. A port is a translation of `js/src/index.ts`, function for function, so
+the six files read side by side, and a port that drifts fails here rather than in somebody's list.
 
-The full specification is [`docs/syntax.md`](docs/syntax.md), whose two amendments carry the rulings
-above.
-
-## Two decisions worth knowing
+## Two promises that survive every port
 
 **It is parsed into a small IR, never compiled to a regex.** That keeps the public language small and
-deterministic, and stops a regex engine's implementation details leaking into it. Translating to a
-regex would also make every reserved character an escaping problem twice over.
+deterministic, and stops a regex engine's behaviour leaking into what a pattern means. In the PHP and
+Python ports (where a regex is right there in the standard library) it is the most load-bearing line
+in the file.
 
-**An unparseable pattern hides nothing.** `compileLabelFilter` returns a matcher that matches
-*everything* and carries the reason on `match.error`, rather than quietly returning an empty list.
-Filtering on a pattern nobody could read would remove rows for a reason nobody can see — a confident
-empty, at the one control whose whole job is to decide what you are shown. The caller surfaces
-`match.error`; it never has to guess.
+**An unreadable pattern hides nothing.** It matches *everything* and carries the reason, rather than
+returning a confident empty list from the one control whose job is deciding what you are shown. This
+holds under `\-\` too: negation never inverts a refusal.
 
-## API
+## Beyond conformance
 
-- `compileLabelFilter(pattern)` → `match(label) => boolean`, with `match.error` set to a string when
-  the pattern could not be read.
-- `parsePattern(pattern)` → the parsed form, if you want to inspect or render it.
+The TypeScript implementation carries two suites the ports do not, because they test the language
+rather than an implementation of it:
+
+* **`js/test/properties.ts`**, every pattern up to a given length over the reserved alphabet, plus
+  generated patterns checked against an **independently written** oracle (a regular expression, which
+  is precisely what the implementation refuses to be). 43 M assertions across four seeds.
+* **`js/test/performance.ts`**, per-label ceilings, because a filter that is correct and slow is
+  still broken. Before the matcher memoised failed positions, `*a*a*a*a*a*z` against an 80-character
+  label took **25 seconds for one label**.
+
+Both live with the reference implementation on purpose. A port that passes the fixture is conformant;
+the fixture is what the ports owe, and the properties are what the language owes itself.
 
 ## Try it
 
-```sh
-npm run sandbox      # then open the URL it prints
+```shell
+cd js && npm run sandbox      # then open the URL it prints
 ```
 
-The sandbox imports the real `src/index.js`, not a copy — what you try there is what the package
-does. Type a pattern and a list of labels and watch the split update live.
+The sandbox serves the built package and has presets for every construct, including the ones that are
+refused. **It does not flicker**: while a pattern is half-typed the list holds its previous answer and
+captions it, rather than flashing every row and narrowing again, `[0-9]` is unreadable at four of its
+five prefixes, and the language answers each of those with *match everything*, which is right for a
+filter and wrong for a list that repaints per keystroke.
 
-## Test
+That policy ships as [`label-filter/sticky`](js/src/sticky.ts) (`createStickyFilter()`) and it is
+**deliberately not in the ports**: `conformance/cases.json` defines what a pattern *means*, in five
+languages; this decides what a text box *does* between two meanings, and the ports have no text box.
 
-```sh
-npm test                     # all three suites
-npm run test:properties:deep # every pattern up to 6 characters — ~35s
+## The site pages are generated
+
+`/products/label-filter` and `/resources/label-filter` on code-evolve.com are built from this
+repository, because they are used to watch progress and a stale progress view is worse than none:
+
+```shell
+site/build.mjs        # render from the manifests, the fixture and a live test run
+site/publish.sh       # build, check, upload with a backup, then verify the served page
 ```
 
-Three suites, because they fail in different ways.
+The implementation table, every version in it, the conformance counts, which suites passed and on what
+date, and the publish state of each package are all derived. Editing the server directly is reverted
+by the next build.
 
-**`test/conformance.mjs` — the specification is the test suite.** Every case is lifted from a
-numbered section of `docs/syntax.md` and names that section when it fails, so a disagreement points
-at the paragraph to re-read rather than at a line of code. It also feeds the parser partial input — a
-lone backtick, a trailing backslash, an empty alternative — because a pattern being typed is
-unfinished far more often than it is finished.
+## Status
 
-**`test/properties.mjs` — what the specification cannot enumerate.** It walks *every* pattern up to a
-given length over the reserved alphabet, fuzzes longer ones, and asserts the invariants that hold
-whatever is typed: nothing throws, a refused pattern hides nothing, a verdict never depends on which
-label was asked first. Then it checks thousands of generated patterns against an **independently
-written** oracle — a regular expression, which is precisely what `src/index.js` refuses to be, so the
-two share no code and no reasoning. The asymmetry that a literal folds and a set does not is what
-makes that comparison bite, since the oracle cannot just use the `i` flag.
+**Not published anywhere yet, on purpose**, see [`docs/releasing.md`](docs/releasing.md), which
+carries the checklist and the reason there is no placeholder holding the npm name.
 
-**`test/performance.mjs` — the budget is one keystroke, over a whole list.** A filter that is correct
-and slow is still broken: before the matcher memoised failed positions, `` *a*a*a*a*a*z `` against an
-80-character label took **25 seconds for one label**, and every conformance case passed throughout.
-Ceilings are per label, and each one above the common ceiling is a cost written down rather than
-absorbed.
-
-All three take their configuration from the environment with **no defaults** — seed, case counts,
-budgets — so a run is reproducible from its own command line and a budget is never implicit. The npm
-scripts supply the values.
-
-## Status — not published, on purpose
-
-This package is **`"private": true`** and carries **no `license`, `author` or `repository` field**.
-That is deliberate and mechanical: `npm publish` refuses a private package, so the name cannot be
-claimed by an accidental placeholder release.
-
-Publishing a stub to hold the name would be the obvious protective move and it is the wrong one. The
-first publish is what fixes `author`, `license` and `repository` — the three things not yet decided —
-so a placeholder would settle all three by default, at the moment nobody is looking. Losing the name
-is recoverable; a manifest published with defaults is not, because nobody notices it and everybody
-inherits it.
-
-Those three fields, and the first real release, are decided elsewhere. Until then the package is
-consumed locally.
-
-## Who uses it
-
-**Squid Desktop** is the first consumer, not the owner. It stages this module at build time so there
-is exactly one copy of the language in existence. A desire for new syntax is a request here, never a
-local edit there.
+**Java is the next port.** The rule for when one is worth adding: a port lands when a consumer needs
+it, not when a language is popular, five implementations already mean one language change is five
+edits.

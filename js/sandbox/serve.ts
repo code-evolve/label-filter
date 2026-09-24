@@ -1,10 +1,15 @@
 /**
  * A zero-dependency static server for the sandbox.
  *
- * **Why a server at all for two static files.** The sandbox imports the real `src/index.js` as an
- * ES module, and a browser refuses a module import over `file://`. Serving is the only way the
- * playground can exercise THE PACKAGE rather than a copy pasted into a script tag — and a sandbox
- * that tests a copy is worse than none, because it agrees with itself.
+ * **Why a server at all for two static files.** The sandbox imports the package as an ES module, and
+ * a browser refuses a module import over `file://`. Serving is the only way the playground can
+ * exercise THE PACKAGE rather than a copy pasted into a script tag — and a sandbox that tests a copy
+ * is worse than none, because it agrees with itself.
+ *
+ * **It serves `dist/`, not `src/`, since the source became TypeScript on 2026-09-23** — a browser
+ * cannot run that. The sandbox now exercises exactly what a consumer installs, which is a stronger
+ * claim than before, at the cost of needing `npm run build` first. It says so on startup rather than
+ * serving a 404 that reads like a bug in the page.
  *
  *   npm run sandbox            then open the URL it prints
  *   PORT=4321 npm run sandbox  to choose the port
@@ -16,13 +21,15 @@
  * on whatever coffee-shop network the laptop later joins. The server says out loud which it did.
  */
 import { createServer } from 'node:http'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 
-const TYPES = {
+const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
@@ -33,10 +40,20 @@ const TYPES = {
 // Only these two directories are reachable. The package root holds nothing secret today, but a
 // sandbox that serves its own parent is a habit that becomes a defect the moment someone drops a
 // key beside it.
-const ALLOWED = ['sandbox/', 'src/', 'docs/']
+const ALLOWED = ['sandbox/', 'dist/', 'docs/']
 
-const server = createServer(async (req, res) => {
-  const url = new URL(req.url, 'http://localhost')
+const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+  // **A malformed path must not take the server down.** `new URL('//', base)` throws, and a stray
+  // request — a probe, a typo, a link with a doubled slash — used to end the whole dev server with an
+  // unhandled ERR_INVALID_URL. Found by a smoke test that asked for `//` by accident, 2026-09-23.
+  let url: URL
+  try {
+    url = new URL(req.url as string, 'http://localhost')
+  } catch {
+    res.writeHead(400, { 'content-type': 'text/plain' })
+    res.end(`not a path this server can read: ${req.url}\n`)
+    return
+  }
 
   // One line per request, with the peer address. **This is a diagnostic, not a log:** when the page
   // does not load from another device, the question is whether the request ARRIVED at all, and
@@ -60,7 +77,8 @@ const server = createServer(async (req, res) => {
     res.end(body)
   } catch (e) {
     res.writeHead(404, { 'content-type': 'text/plain' })
-    res.end(`${rel}: ${e.code || e.message}`)
+    const err = e as NodeJS.ErrnoException
+    res.end(`${rel}: ${err.code || err.message}`)
   }
 })
 
@@ -69,7 +87,11 @@ const bind = process.env.BIND || '127.0.0.1'
 
 server.listen(port, bind, () => {
   console.log(`label-filter sandbox  →  http://${bind}:${port}/`)
-  console.log('serving the real src/index.js — what you try here is what the package does')
+  if (existsSync(join(root, 'dist/index.js'))) {
+    console.log('serving the built dist/index.js — what you try here is what the package ships')
+  } else {
+    console.log('NOTE: dist/index.js is missing — run `npm run build` first, or the page will not load')
+  }
   if (bind === '0.0.0.0') {
     console.log('WARNING: bound to every interface, with no password. Bind one address instead.')
   } else if (bind !== '127.0.0.1') {

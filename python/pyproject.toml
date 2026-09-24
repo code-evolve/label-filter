@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "label-filter"
+version = "0.1.0"
+description = "A small glob-like pattern language for filtering lists of objects by their labels. Parsed to an IR, never compiled to a regex."
+readme = "README.md"
+requires-python = ">=3.9"
+# **The SPDX string, not a file path.** It said `{ file = "../LICENSE.txt" }`, and PEP 621 resolves a
+# license file relative to THIS project root, so the path escaped the package and named nothing a build
+# could read: the same defect shape as the specification silently not shipping. A licence file is staged
+# beside this manifest at build time instead, by `hatch` picking up LICENSE.txt below.
+license = "MIT"
+authors = [{ name = "Steven Spungin" }]
+keywords = ["filter", "pattern", "glob", "label", "match"]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Text Processing :: Filters",
+]
+# published: false — read by site/build.mjs; PyPI has no manifest flag to read, so this line is the
+# only statement of it. Flip it when the package is actually on PyPI, not when it is ready to be.
+#
+# **No dependencies, and none for the tests either.** The conformance runner uses `json` and
+# `unittest` from the standard library, so the fixture stays the only thing shared between
+# implementations.
+dependencies = []
+
+[project.urls]
+Homepage = "https://www.code-evolve.com/products/label-filter"
+Repository = "https://github.com/code-evolve/label-filter"
+Issues = "https://github.com/code-evolve/label-filter/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["label_filter"]

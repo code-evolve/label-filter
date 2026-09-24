@@ -1,3 +1,13 @@
+/*
+Copyright 2026 Steven Spungin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 /**
  * The budget this language actually has to live inside: **one keystroke, over a whole list.**
  *
@@ -21,7 +31,7 @@
  * behaviour, not to police a few milliseconds. Every case prints its measurement, so a regression
  * that stays under the ceiling is still visible in the output.
  */
-import { compileLabelFilter } from '../src/index.js';
+import { compileLabelFilter } from '../src/index.ts';
 
 function required(name) {
   const raw = process.env[name];
@@ -39,8 +49,8 @@ const LABELS = required('LABEL_FILTER_PERF_LABELS');
 const BUDGET_US = required('LABEL_FILTER_PERF_BUDGET_US_LABEL');
 
 /** A list shaped like the ones this filters: paths, dates, camel case, and a few long names. */
-function makeLabels(n) {
-  const out = [];
+function makeLabels(n: number): string[] {
+  const out: string[] = [];
   for (let i = 0; i < n; i++) {
     const k = i % 5;
     if (k === 0) out.push(`src/features/phase/components/PhaseCard${i}.vue`);
@@ -64,7 +74,7 @@ let failures = 0;
  * followed by a literal that mostly matches, repeated, against long runs of the same character.
  * The rest are ordinary patterns, measured so an everyday regression shows up too.
  */
-const CASES = [
+const CASES: Array<[string, string, number]> = [
   ['wildcards over a long repeated label', '*a*a*a*a*a*z', 1],
   ['more wildcards than anyone would type', '*a*a*a*a*a*a*a*a*a*a*z', 1],
   ['wildcards with a set between them', '*a*[a-c]*a*[a-c]*z', 1],
@@ -131,4 +141,4 @@ if (failures) {
   console.error(`\nlabel-filter performance FAILED: ${failures} case(s)`);
   process.exit(1);
 }
-console.log(`\nok — ${CASES.length} patterns filtered ${labels.length} labels each, all inside their declared ceiling`);
+console.log(`\nok: ${CASES.length} patterns filtered ${labels.length} labels each, all inside their declared ceiling`);

@@ -1,0 +1,28 @@
+{
+  // Typechecks the TESTS, the sample and the sandbox server. The point is not their internals: it is
+  // that a test cannot assert against an API that does not exist, which is exactly how a passing
+  // suite hides a rename. Node strips types to RUN these files and checks nothing while doing it.
+  //
+  // tsconfig.build.json includes `src` only, which is correct for emitting. This adds the rest and
+  // emits nothing.
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "rootDir": ".",
+    // These files import `../src/index.ts` by its real path, because that is what Node resolves when
+    // it strips the types. tsc needs telling that the extension it normally forbids is deliberate.
+    "allowImportingTsExtensions": true,
+    // **Deliberately looser than the build.** A test callback's parameter types are obvious from one
+    // line above them, and annotating several hundred of them buys nothing the suites do not already
+    // prove by running. The API surface they touch is still fully checked.
+    "noImplicitAny": false,
+    "lib": ["ESNext", "DOM"],
+    // The build config sets `typeRoots: []` to keep a parent monorepo's @types out of the emitted
+    // declarations. That also switches off the lookup that would find this package's own @types/node,
+    // so it is pointed at explicitly rather than by re-opening the search.
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["node"]
+  },
+  "include": ["src", "test", "samples", "sandbox"]
+}

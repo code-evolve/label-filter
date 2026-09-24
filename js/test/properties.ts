@@ -1,3 +1,13 @@
+/*
+Copyright 2026 Steven Spungin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 /**
  * Properties that must hold for EVERY pattern, not only the ones the spec spells out.
  *
@@ -15,7 +25,7 @@
  *   LABEL_FILTER_FUZZ_CASES           generated patterns per property
  *   LABEL_FILTER_EXHAUSTIVE_LENGTH    every pattern up to this length over the reserved alphabet
  */
-import { compileLabelFilter, parsePattern } from '../src/index.js';
+import { compileLabelFilter, parsePattern } from '../src/index.ts';
 
 function required(name) {
   const raw = process.env[name];
@@ -46,7 +56,7 @@ function rng(seed) {
 
 let failures = 0;
 let checks = 0;
-const fail = (what, detail) => {
+const fail = (what: string, detail?: string) => {
   failures++;
   if (failures <= 40) console.error(`  ${what}${detail ? ` — ${detail}` : ''}`);
 };
@@ -73,7 +83,7 @@ function mustBeharmless(pattern, where) {
   try {
     m = compileLabelFilter(pattern);
   } catch (e) {
-    fail(`${where}: compile threw`, `${JSON.stringify(pattern)} — ${e.message}`);
+    fail(`${where}: compile threw`, `${JSON.stringify(pattern)} — ${(e as Error).message}`);
     checks++;
     return;
   }
@@ -83,7 +93,7 @@ function mustBeharmless(pattern, where) {
     try {
       r = m(label);
     } catch (e) {
-      fail(`${where}: match threw`, `${JSON.stringify(pattern)} on ${JSON.stringify(label)} — ${e.message}`);
+      fail(`${where}: match threw`, `${JSON.stringify(pattern)} on ${JSON.stringify(label)} — ${(e as Error).message}`);
       continue;
     }
     // **The invariant the whole error channel exists for.** A pattern nobody could read must leave
@@ -157,8 +167,11 @@ function literalAtom(ch, caseSensitive) {
   return `[${escapeRe(lo)}${escapeRe(up)}]`;
 }
 
+/** One piece of a generated pattern: a literal run, a wildcard, or a set body. */
+type GeneratedPart = { kind: 'lit'; v: string } | { kind: 'any' } | { kind: 'set'; body: string };
+
 function generateSimple(rnd) {
-  const parts = [];
+  const parts: GeneratedPart[] = [];
   const count = 1 + Math.floor(rnd() * 4);
   for (let i = 0; i < count; i++) {
     const roll = rnd();
@@ -214,23 +227,25 @@ function oracle({ parts, start, end, caseSensitive }) {
 /** Labels that should HIT, plus mutations of them that probe the edges of each rule. */
 function targetedLabels(shape, rnd) {
   const pick = (s) => s[Math.floor(rnd() * s.length)];
-  const fromSet = (body) => {
-    const chars = [];
+  const fromSet = (body: string) => {
+    const chars: string[] = [];
     for (let i = 0; i < body.length; i++) {
       if (body[i + 1] === '-' && i + 2 < body.length) {
-        for (let c = body.codePointAt(i); c <= body.codePointAt(i + 2); c++) chars.push(String.fromCodePoint(c));
+        const lo = body.codePointAt(i) as number;
+        const hi = body.codePointAt(i + 2) as number;
+        for (let c = lo; c <= hi; c++) chars.push(String.fromCodePoint(c));
         i += 2;
       } else chars.push(body[i]);
     }
     return pick(chars);
   };
   let hit = '';
-  for (const part of shape.parts) {
+  for (const part of shape.parts as GeneratedPart[]) {
     if (part.kind === 'lit') hit += [...part.v].map((c) => (rnd() < 0.3 ? c.toUpperCase() : c)).join('');
     else if (part.kind === 'any') hit += pick(['', 'q', 'QQ', 'a-b', '😀']);
     else hit += fromSet(part.body);
   }
-  const out = [hit];
+  const out: string[] = [hit];
   if (!shape.start) out.push(pick(['x', 'aa', '😀']) + hit);
   if (!shape.end) out.push(hit + pick(['x', 'zz', '😀']));
   if (hit.length) {
@@ -369,7 +384,7 @@ const agreeOn = (a, b, labels) => labels.every((l) => a(l) === b(l));
     let f = '';
     for (let j = 0; j < len; j++) f += PLAIN[Math.floor(rnd() * PLAIN.length)];
     const lower = f.toLowerCase();
-    const forms = [
+    const forms: Array<[string, (s: string) => boolean]> = [
       [f, (s) => s.toLowerCase().includes(lower)],
       [`\`${f}`, (s) => s.toLowerCase().startsWith(lower)],
       [`${f}\``, (s) => s.toLowerCase().endsWith(lower)],
@@ -401,11 +416,12 @@ const agreeOn = (a, b, labels) => labels.every((l) => a(l) === b(l));
   }
 
   // And the converse: a set never folds, whatever the mode.
-  for (const [p, yes, no] of [
+  const setCases: Array<[string, string[], string[]]> = [
     ['`[A-Z]', ['Apple'], ['apple']],
     ['[a-z]`', ['xa'], ['xA']],
     ['x[0-9A-F]y', ['x0y', 'xFy'], ['xfy']],
-  ]) {
+  ];
+  for (const [p, yes, no] of setCases) {
     const m = compileLabelFilter(p);
     for (const label of yes) { checks++; if (!m(label)) fail('a set refused a label it holds', `${p} / ${label}`); }
     for (const label of no) { checks++; if (m(label)) fail('a set folded with case', `${p} / ${label}`); }
@@ -422,7 +438,11 @@ const agreeOn = (a, b, labels) => labels.every((l) => a(l) === b(l));
       fail('parsePattern returned a shape callers cannot read', JSON.stringify(p));
     }
     checks++;
-    if (parsed.alts.some((a) => a.tokens.some((t) => t.k === 'group'))) {
+    // **The type now says this cannot happen, and the check stays anyway.** `PatternToken` excludes
+    // the group node, so tsc calls the comparison unreachable — but `tokenise` reaches the same
+    // conclusion through a CAST (a branch cannot hold a group, by construction), and a cast is
+    // exactly the thing a runtime assertion should outlive. Widened here rather than deleted.
+    if (parsed.alts.some((a) => a.tokens.some((t) => (t as { k: string }).k === 'group'))) {
       fail('a group survived into the IR', JSON.stringify(p));
     }
   }
@@ -492,4 +512,4 @@ if (failures) {
   console.error(`label-filter properties FAILED: ${failures} of ${checks} (seed ${SEED})`);
   process.exit(1);
 }
-console.log(`ok — ${checks} property assertions, seed ${SEED}, ${FUZZ_CASES} generated cases per property`);
+console.log(`ok: ${checks} property assertions, seed ${SEED}, ${FUZZ_CASES} generated cases per property`);

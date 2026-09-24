@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    // **`strict` is on here where the reference packages leave it off.** Their `src` predates this
+    // one by two years and turning it on retroactively is a separate job; there is no reason for a
+    // package written today to start without it, and the declarations a consumer gets are only as
+    // honest as the checking behind them.
+    "strict": true,
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    // ES2022 is the package's stated floor (`engines.node: >=18`), and nothing here needs more.
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    // **The source imports `./index.ts` and the emitted JavaScript says `./index.js`.** Node runs the
+    // TypeScript directly by stripping types, so a module has to import the file that is actually
+    // there; the emitted `dist/` has to import the file that will be there. These two flags (TS 5.7)
+    // are what let one spelling serve both, instead of a build step that rewrites imports or a test
+    // suite that runs against `dist/` and therefore needs a build in the loop.
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    // Keep a parent monorepo's @types out of a package that needs none of them.
+    "typeRoots": [],
+    "lib": ["ESNext"]
+  },
+  "include": ["src"]
+}

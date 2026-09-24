@@ -1,0 +1,78 @@
+{
+  "name": "label-filter",
+  "description": "A small glob-like pattern language for filtering lists of objects by their labels. Parsed to an IR, never compiled to a regex.",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./sticky": {
+      "types": "./dist/sticky.d.ts",
+      "import": "./dist/sticky.js",
+      "default": "./dist/sticky.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "license": "MIT",
+  "author": "Steven Spungin",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/code-evolve/label-filter.git",
+    "directory": "js"
+  },
+  "homepage": "https://www.code-evolve.com/products/label-filter",
+  "bugs": {
+    "url": "https://github.com/code-evolve/label-filter/issues"
+  },
+  "scripts": {
+    "spec:stage": "mkdir -p docs && cp ../docs/syntax.md docs/syntax.md && cp ../LICENSE.txt LICENSE.txt",
+    "build": "tsc -p tsconfig.build.json && npm run build:lic",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "npm run test:conformance && npm run test:sticky && npm run test:properties && npm run test:performance",
+    "test:conformance": "node test/conformance.ts",
+    "test:sticky": "node test/sticky.ts",
+    "test:properties": "LABEL_FILTER_SEED=20260922 LABEL_FILTER_FUZZ_CASES=3000 LABEL_FILTER_EXHAUSTIVE_LENGTH=4 node test/properties.ts",
+    "test:properties:deep": "LABEL_FILTER_SEED=424242 LABEL_FILTER_FUZZ_CASES=50000 LABEL_FILTER_EXHAUSTIVE_LENGTH=5 node test/properties.ts",
+    "test:performance": "LABEL_FILTER_PERF_LABELS=2000 LABEL_FILTER_PERF_BUDGET_US_LABEL=60 node test/performance.ts",
+    "sample": "node samples/example.ts",
+    "sandbox": "npm run build && node sandbox/serve.ts",
+    "build:lic": "license-check-and-add add",
+    "dry": "npm run spec:stage && npm run build && npm run typecheck && npm test && npm pack --dry-run",
+    "prepack": "npm run spec:stage && npm run build && npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "license-check-and-add": "^4.0.5",
+    "typescript": "^5.7.2"
+  },
+  "files": [
+    "dist",
+    "src",
+    "test",
+    "samples",
+    "docs/syntax.md",
+    "changelog.md"
+  ],
+  "keywords": [
+    "filter",
+    "pattern",
+    "glob",
+    "label",
+    "match",
+    "search",
+    "wildcard",
+    "character-set",
+    "case-insensitive",
+    "code-evolve",
+    "labelfilter"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

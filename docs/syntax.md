@@ -38,7 +38,7 @@ costs no syntax at all and nothing has to be learned before the language is usef
 characters; no parentheses beyond the one flat group, no quantifiers, no lookahead, no capture, no
 flags. The whole language fits in a table of a dozen lines.
 
-**It was strained by the backtick doing three jobs** — start anchor, end anchor, and set delimiter —
+**It was strained by the backtick doing three jobs**, start anchor, end anchor, and set delimiter,
 disambiguated by position and parity. That was the one genuinely hard corner, and it was not
 speculative: on 2026-09-21 and 2026-09-22 it produced six separate confusions, in the implementation
 *and in this document*.
@@ -46,18 +46,18 @@ speculative: on 2026-09-21 and 2026-09-22 it produced six separate confusions, i
 | What was written | What it was thought to mean | What it means |
 |---|---|---|
 | `` `in*`t` `` | an unpaired backtick, or a set of `in*` | anchor, `in`, any, set of `t` |
-| `` `123`bar `` | §15's own example: a set then `bar` | refused — a set cannot open with a bare backtick |
-| `` `123`` `` | starts with one of `123` | `123` then an empty set — refused |
-| `` `1`` `` | ends with one of `1` | `1` then an empty set — refused |
+| `` `123`bar `` | §15's own example: a set then `bar` | refused, a set cannot open with a bare backtick |
+| `` `123`` `` | starts with one of `123` | `123` then an empty set, refused |
+| `` `1`` `` | ends with one of `1` | `1` then an empty set, refused |
 | `` `0-9` `` | a digit | the exact text `0-9` |
 | ``` ``A-Z` ``` | a typo | anchor, then a set |
 
-The rule that resolved all six — *backticks pair from the left, and only a backtick still unpaired at
-the very end is an end anchor* — was a **parser** rule that a person cannot apply at a glance.
+The rule that resolved all six, *backticks pair from the left, and only a backtick still unpaired at
+the very end is an end anchor*, was a **parser** rule that a person cannot apply at a glance.
 
 **Fixed at the root on 2026-09-22**, while the package was still unpublished: sets moved to `[…]`, a
 backtick became an anchor and nothing else, and the table above became history. See the second
-amendment of that date. This is what a goal is for — the overload was defensible on every other
+amendment of that date. This is what a goal is for, the overload was defensible on every other
 count, and *easy to learn* is what decided it.
 
 ### Easy to type
@@ -73,7 +73,7 @@ control that inserts the anchors.
 
 **And by the cost of a group.** `*.||md|txt||` is longer than `*.md|*.txt`. A group pays for itself
 only when the shared part is long, which is exactly when it is worth having, so this is a fair trade
-rather than a defect — but it means a group is not the shorter spelling, only the one that does not
+rather than a defect, but it means a group is not the shorter spelling, only the one that does not
 repeat itself.
 
 ### Easy to view
@@ -83,7 +83,7 @@ left to right with no precedence to remember beyond the table in §11.
 
 **It was strained by runs of backticks.** `` `#`0-9a-f``0-9a-f``0-9a-f`` `` was correct, useful, and
 a picket fence; the eye cannot count backticks, which was the same overload the learnability goal
-paid for, showing up as a reading cost. The same pattern is now `` `#[0-9a-f][0-9a-f][0-9a-f]` `` —
+paid for, showing up as a reading cost. The same pattern is now `` `#[0-9a-f][0-9a-f][0-9a-f]` ``,
 still dense, but every delimiter says which end it is. The doubling in `||…||` never had the problem,
 being visually distinct from a single bar, and that is the shape the bracket fix followed.
 
@@ -92,14 +92,14 @@ being visually distinct from a single bar, and that is the shape the bracket fix
 **Served:** contains, starts, ends, exact, wildcard, one-of-characters, ranges, alternation,
 grouping, case control, escapes. Between them these answer the large majority of list filtering.
 
-**Negation and word boundaries were the two gaps, and both closed on 2026-09-22** — `\-\` and
+**Negation and word boundaries were the two gaps, and both closed on 2026-09-22**, `\-\` and
 `\b\`, neither of which cost a reserved character, because the option prefix was already the place
 for something that governs the whole pattern.
 
 What remains, in order of how often it would actually be missed:
 
-* **repetition** — `[0-9]` four times over is how a four-digit year is written
-* **include-except** — `\-\` is an exclusion filter, so *apple but not test* still needs two
+* **repetition**, `[0-9]` four times over is how a four-digit year is written
+* **include-except**, `\-\` is an exclusion filter, so *apple but not test* still needs two
   filters, or an AND this language deliberately does not have
 
 **Deliberately out of scope**, and not gaps: numeric or date comparison, field-scoped terms
@@ -110,8 +110,8 @@ filter that grew those would stop being learnable in an afternoon, which is the 
 
 ## 2. Reserved Characters
 
-> **Superseded 2026-09-22 — there are now six.** `[` and `]` were added when sets moved into
-> brackets; see *Amendment — 2026-09-22 (second)*.
+> **Superseded 2026-09-22, there are now six.** `[` and `]` were added when sets moved into
+> brackets; see *Amendment, 2026-09-22 (second)*.
 
 Only four characters have special meaning:
 
@@ -253,8 +253,8 @@ Case-sensitive exact matching is:
 
 ## 6. Character Sets
 
-> **Superseded 2026-09-22 — a set is `[…]`.** Every example below holds with the brackets substituted
-> for the backticks; see *Amendment — 2026-09-22 (second)*.
+> **Superseded 2026-09-22, a set is `[…]`.** Every example below holds with the brackets substituted
+> for the backticks; see *Amendment, 2026-09-22 (second)*.
 
 A pair of backticks defines a **single-character set**.
 
@@ -607,7 +607,7 @@ if additional matching behaviors are needed.
 ## 11. Summary of Syntax
 
 > **Re-spelt 2026-09-22.** Rows using a backtick as a set delimiter are superseded by the bracket
-> spelling; the table in *Amendment — 2026-09-22 (second)* is the current one.
+> spelling; the table in *Amendment, 2026-09-22 (second)* is the current one.
 
 | Pattern           | Meaning                                          |                              |
 | ----------------- | ------------------------------------------------ | ---------------------------- |
@@ -652,7 +652,7 @@ There are no:
 
 ### Useful default
 
-The most common operation—searching for a label containing some text—requires no special syntax:
+The most common operation, searching for a label containing some text, requires no special syntax:
 
 ```text
 engine
@@ -689,8 +689,8 @@ Only the explicitly defined operators have special meaning.
 
 ## 13. Parsing Model
 
-> **Superseded 2026-09-22.** The backtick grammar below — a boundary tick distinguished from a set
-> delimiter by position and context — is exactly what the bracket spelling removed. See the second
+> **Superseded 2026-09-22.** The backtick grammar below, a boundary tick distinguished from a set
+> delimiter by position and context, is exactly what the bracket spelling removed. See the second
 > amendment of that date.
 
 A pattern is first checked for an optional option prefix.
@@ -994,7 +994,7 @@ This keeps the public language small and deterministic and prevents implementati
 
 ---
 
-## Amendment — 2026-09-21
+## Amendment, 2026-09-21
 
 **The specification above is unchanged and is kept as written.** This section records a ruling that
 resolves a contradiction between two of its sections, and it is the authority where they disagree.
@@ -1014,7 +1014,7 @@ produced for a pattern nobody had considered was indefensible:
 `in*`t`
 ```
 
-was parsed as *one character from `i`, `n`, `*`, followed by `t`, at the end of the label* — because
+was parsed as *one character from `i`, `n`, `*`, followed by `t`, at the end of the label*, because
 the leading backtick opened a set whose closing backtick was not the last character. Reported by
 Steven: *"its confused about if the set is `in*` or `t`."*
 
@@ -1027,7 +1027,7 @@ And on the same pattern:
 
 > The first is an anchor, the next must be a set.
 
-So `` `in*`y` `` is **start anchor**, `in`, any, then a **set** holding `y` — with no end anchor,
+So `` `in*`y` `` is **start anchor**, `in`, any, then a **set** holding `y`, with no end anchor,
 because the set consumed the last two backticks. The order of operations is the whole of it:
 **backticks pair into sets from the left, and only a backtick still unpaired at the very end is an
 end anchor.** Taking the trailing backtick as an anchor *first* is what made this look like three
@@ -1039,15 +1039,15 @@ ticks that could not pair.
 |---|---|
 | `` `apple `` | starts with `apple` |
 | `` apple` `` | ends with `apple` |
-| `` `apple` `` | exactly `apple` — two anchors |
-| `` `123` `` | exactly `123` — two anchors, **not** a set |
+| `` `apple` `` | exactly `apple`, two anchors |
+| `` `123` `` | exactly `123`, two anchors, **not** a set |
 | `` `in*`y` `` | starts with `in`, any, then one of `y` |
 | ``` ``123`bar ``` | starts with one of `123`, then `bar` |
 | `` *`123`bar `` | one of `123` then `bar`, anywhere |
 | `` foo`123`bar `` | `foo`, one of `123`, `bar` |
 | `` bar`456`` `` | `bar`, one of `456`, at the end |
 
-**A set at the very start must be preceded by `` ` `` or `*`** — ``` ``123` ``` or `` *`123` `` —
+**A set at the very start must be preceded by `` ` `` or `*`**, ``` ``123` ``` or `` *`123` ``,
 because its opening backtick would otherwise be the first character, which the ruling reads as an
 anchor. At the end there is no such difficulty: `` bar`456`` `` works, since the set's opening
 backtick has `bar` before it.
@@ -1057,27 +1057,27 @@ backtick has `bar` before it.
 Steven, on two of his own examples: *"`` `123`` `` and `` `123`* `` are syntax errors, yes?"* Yes.
 Both would need a set to open at position 0 with nothing before it.
 
-- `` `123`` `` — the anchor takes the first backtick, leaving the trailing pair to form an **empty
+- `` `123`` ``, the anchor takes the first backtick, leaving the trailing pair to form an **empty
   set**, which can never match. Refused, because a pattern that silently matches nothing is worse
   than one that says why.
-- `` `123`* `` — the anchor takes the first backtick and the next has no close.
+- `` `123`* ``, the anchor takes the first backtick and the next has no close.
 
 **A backtick left unpaired anywhere but the very end is an error, not a literal.** A literal
 backtick is `` \` `` (§9). Guessing at a half-written set is how a filter silently answers a
 different question.
 
-**A refused pattern hides nothing.** The filter shows the reason and leaves every row visible —
+**A refused pattern hides nothing.** The filter shows the reason and leaves every row visible,
 removing rows on a pattern that could not be read would have the one control whose job is deciding
 what you see deciding it for a reason nobody can inspect.
 
 ### Consequence for §15
 
-`` `123`bar `` is no longer valid as written. For the same meaning it is `` *`123`bar ``, or
-``` ``123`bar ``` if the start anchor was intended.
+`` `123`bar `` is no longer valid as written. For the same meaning it is `` *`123`bar ``, or, if the
+start anchor was intended, ``` ``123`bar ```.
 
 ---
 
-## Amendment — 2026-09-22
+## Amendment, 2026-09-22
 
 **Groups.** `||…||` groups alternatives, and `` `a|b` `` is now refused. §8 and §12 are amended
 below; everything else above stands.
@@ -1091,16 +1091,16 @@ evaluated independently"*), so an anchor belongs to the alternative it is writte
 `a|b`
 ```
 
-mean *starts with `a`* **OR** *ends with `b`* — while it reads to almost everyone as *exactly `a` or
+mean *starts with `a`* **OR** *ends with `b`*, while it reads to almost everyone as *exactly `a` or
 `b`*, because the anchors sit at the two outer edges and look like they wrap the alternation.
 
 Reported by Steven 2026-09-22: *"there is one precedence issue, its obvious: `` `a|b` ``"*. It parsed
 cleanly and answered a different question, which is the same failure as the `` `in*`t` `` bug of the
-day before — and worse here, because nothing about the result says a different question was asked.
+day before, and worse here, because nothing about the result says a different question was asked.
 
 ### The ruling: `||` is a group
 
-> **my thought is `||` becomes a parenthesis** — `` `||a|b||` ``
+> **my thought is `||` becomes a parenthesis**, `` `||a|b||` ``
 
 So:
 
@@ -1112,7 +1112,7 @@ is *exactly `a`* or *exactly `b`*. Inside the group, single `|` separates the br
 belong to the enclosing alternative and apply to every branch.
 
 **No fifth reserved character is introduced.** Doubling a delimiter where it would otherwise be
-ambiguous is already this language's own idiom — §7 does exactly that with `` `` ``. And the spelling
+ambiguous is already this language's own idiom, §7 does exactly that with `` `` ``. And the spelling
 `||` took over was never a feature: an empty alternative silently matched **every** label, so
 `a||b` used to hide nothing and say nothing. It is now an error, which is strictly better.
 
@@ -1134,19 +1134,19 @@ The repetition was not just verbose; editing the shared part meant editing every
 
 ### Rules
 
-* **A group does not nest.** Inside a group, `||` **closes** it — so `||a||b||` is not a nested group
+* **A group does not nest.** Inside a group, `||` **closes** it, so `||a||b||` is not a nested group
   but a closed group, `b`, and a second group left open. It is refused as unclosed.
 * **Three or more `|` in a row is an error, never a guess.** This is what keeps `||` pairing
   decidable left to right, and it is also what makes an empty group (`||||`) and an empty branch
-  unwritable — they cannot be spelled without a run of three.
-* **An unclosed group is an error**, so a half-typed `a||` hides nothing and says why — the same
+  unwritable, they cannot be spelled without a run of three.
+* **An unclosed group is an error**, so a half-typed `a||` hides nothing and says why, the same
   channel as an unpaired backtick.
 * **Two groups cannot touch.** `||a|b||||c|d||` is a run of four bars and is refused; put a character
   between them (`||a|b||-||c|d||`) or use separate alternatives. This falls out of the run rule
   rather than being a rule of its own.
 * **An anchor cannot go inside a group.** Anchors bind to the whole alternative; `` ||a`|b|| `` is
   refused.
-* **A set may open a branch directly** — `` ||`12`x|y|| ``. The rule of 2026-09-21 is that a set may
+* **A set may open a branch directly**, `` ||`12`x|y|| ``. The rule of 2026-09-21 is that a set may
   not open with a backtick that has nothing before it; the group's `||` is something before it, and
   it is not a backtick, so there is nothing to confuse.
 * **A literal `||` is `\|\|`**, unchanged by any of this.
@@ -1155,12 +1155,12 @@ The repetition was not just verbose; editing the shared part meant editing every
 
 Now that the intended meaning has a spelling, the misread spelling is an error naming it:
 
-> anchors bind to one alternative, not across `|` — write `` `||a|b||` `` for exactly one of them
+> anchors bind to one alternative, not across `|`, write `` `||a|b||` `` for exactly one of them
 
 **This costs one thing and it is worth naming:** *starts with `a` OR ends with `b`* was only
 expressible as `` `a|b` ``, and is now not expressible at all. That is an exotic want; being quietly
-wrong about a common one is not a fair price for it. A refusal hides nothing — every row stays
-visible with the reason attached — so this error costs a reader nothing but a re-read.
+wrong about a common one is not a fair price for it. A refusal hides nothing, every row stays
+visible with the reason attached, so this error costs a reader nothing but a re-read.
 
 The refused shape is precise: **two or more alternatives, where the first carries a start anchor and
 no end anchor, and the last carries an end anchor and no start anchor.** `` `a|`b `` and
@@ -1175,10 +1175,10 @@ the absence of regex-shaped machinery, and a flat, non-capturing group is not th
 
 ### Precedence, stated once
 
-1. the option prefix `\…\` — applies to the whole pattern
-2. `|` at the top level — separates alternatives
-3. anchors — at the edges of the alternative they are written in
-4. `||…||` — one token within an alternative; its `|` separates branches, nothing else
+1. the option prefix `\…\`, applies to the whole pattern
+2. `|` at the top level, separates alternatives
+3. anchors, at the edges of the alternative they are written in
+4. `||…||`, one token within an alternative; its `|` separates branches, nothing else
 5. sets, `*`, literals
 
 ### Implementation note
@@ -1195,10 +1195,10 @@ unchanged, and there is nothing new that can recurse. Groups multiply, so an alt
 | `` `||a|b||` `` | exactly `a`, or exactly `b` |
 | `` *.||md|txt|| `` | `.md` or `.txt`, anywhere |
 | `` `||src|test||/ `` | starts with `src/` or `test/` |
-| `` ||`12`x|y|| `` | one of `1`,`2` then `x`, or `y` — a set opening a branch |
-| `` `a|b` `` | **refused** — anchors do not wrap alternatives |
-| `a||b` | **refused** — unclosed group (it used to match everything) |
-| `` ||a||b|| `` | **refused** — groups do not nest |
+| `` ||`12`x|y|| `` | one of `1`,`2` then `x`, or `y`, a set opening a branch |
+| `` `a|b` `` | **refused**, anchors do not wrap alternatives |
+| `a||b` | **refused**, unclosed group (it used to match everything) |
+| `` ||a||b|| `` | **refused**, groups do not nest |
 | `a\|\|b` | the literal text `a||b` |
 
 ### Clarification to the 2026-09-21 amendment
@@ -1207,10 +1207,10 @@ That amendment ends: *"At the end there is no such difficulty: `` bar`456`` `` w
 opening backtick has `bar` before it."* The example is right and the generalisation is not, and the
 generalisation is what got copied into the sandbox and the README.
 
-Steven, 2026-09-22: *"`` `1`` `` is invalid"* — and it is, for the reason the rest of the ruling
+Steven, 2026-09-22: *"`` `1`` `` is invalid"*, and it is, for the reason the rest of the ruling
 gives. **Count the backticks from the left.** `` bar`456`` `` opens with `bar`, so its first backtick
 opens a set. `` `1`` `` opens with a backtick, which is therefore the start anchor, leaving a pair at
-the end that is an empty set — refused, as `` `123`` `` already was.
+the end that is an empty set, refused, as `` `123`` `` already was.
 
 So a set at the **end** is safe only when the pattern does not open with an anchor. Under a start
 anchor it needs three backticks after it, not two:
@@ -1227,7 +1227,7 @@ anchor it needs three backticks after it, not two:
 Steven, 2026-09-22: *"`\\` matches everything but should match anything with a backslash."*
 
 `\\` was being read as an option prefix with an **empty** option section, which stripped both
-characters and left the empty pattern — matching every label. §9 says `\\` is a literal backslash, and
+characters and left the empty pattern, matching every label. §9 says `\\` is a literal backslash, and
 a **lone** `\` already parsed that way, so the two spellings of one thing disagreed and the wrong one
 was a confident match-all.
 
@@ -1237,7 +1237,7 @@ option prefix. An empty option section was never useful anyway: omitting it says
 **And an unknown option is refused rather than ignored.** §10 deliberately leaves the namespace open
 for `\d\` and `\cd\`; until one of them exists, `\d\foo` is an error naming the only option there is.
 Dropping it silently would answer a question the pattern did not ask, and `\d\foo` has a second
-reading — the literal `dfoo` — which makes guessing between the two worse than refusing either.
+reading (the literal `dfoo`) which makes guessing between the two worse than refusing either.
 
 | Pattern | Reads as |
 |---|---|
@@ -1246,11 +1246,11 @@ reading — the literal `dfoo` — which makes guessing between the two worse th
 | `\\foo` | the literal `\foo` |
 | `\\c\\` | the literal `\c\` |
 | `\c\foo` | case-sensitive, contains `foo` |
-| `\d\foo` | **refused** — unknown option |
+| `\d\foo` | **refused**, unknown option |
 
 ### Sets are always case-sensitive
 
-Steven, 2026-09-22: *"sets should always be case sensitive, yes?"* — yes. This amends §6 and §10.
+Steven, 2026-09-22: *"sets should always be case sensitive, yes?"*, yes. This amends §6 and §10.
 
 A **literal** folds with case, as it always has: `apple` matches `APPLE` by default, and `\c\` turns
 that off. A **set** never folds, in either mode:
@@ -1264,22 +1264,22 @@ x`A-Za-z`y       matches both, because it says both
 **The asymmetry is the point, not an inconsistency.** A literal has no other spelling, so folding it
 is the only way `apple` can mean what everyone means by it. A set has another spelling: `` `A-Za-z` ``
 asks for either case explicitly, and `` `Aa` `` does it for one letter. Folding therefore *destroyed*
-what a set is for — `` `A-Z` ``, `` `a-z` `` and `` `A-Za-z` `` were three spellings of one thing, and
+what a set is for, `` `A-Z` ``, `` `a-z` `` and `` `A-Za-z` `` were three spellings of one thing, and
 *starts with a capital* could only be asked by flipping the whole pattern to `\c\`, which hardens
 every literal along with it. Not folding loses nothing: the wider set is always available.
 
 Consequently **`\c\` now governs literals only.** §10's example `` \c\``A-Z`foo `` still means what
 it says; the `\c\` in it now bears on `foo` alone.
 
-Implementation note: the matcher walks the folded label and the raw label at the same index — a
-literal reads the folded one, a set reads the raw one — so the fold is applied per character and
+Implementation note: the matcher walks the folded label and the raw label at the same index, a
+literal reads the folded one, a set reads the raw one, so the fold is applied per character and
 **skips the characters whose lower case is longer than they are** (`İ`), which would otherwise slide
 the two strings apart and have a set test the wrong character.
 
 
 ---
 
-## Amendment — 2026-09-22 (second)
+## Amendment, 2026-09-22 (second)
 
 **Sets move to `[` and `]`, `\-\` negates, and `\b\` matches whole words.** Steven:
 
@@ -1316,13 +1316,13 @@ Every spelling they refused is still refused, now by the one rule above rather t
 [123]            one character from 1, 2, 3
 [0-9] [a-z]      ranges, as before
 [A-Za-z] [0-9A-F]
-foo[123]bar      anywhere in the pattern — including the very start
+foo[123]bar      anywhere in the pattern: including the very start
 `[123]bar        beside an anchor, with nothing special required
 bar[456]`
 `[123]bar[456]`
 ```
 
-* **An empty set `[]` is refused** — it could never match, and a pattern that silently matches
+* **An empty set `[]` is refused**, it could never match, and a pattern that silently matches
   nothing is the outcome this language exists to avoid.
 * **An unclosed `[` and an unmatched `]` are refused**, naming the escape.
 * **A literal bracket is `\[` or `\]`.**
@@ -1333,15 +1333,15 @@ bar[456]`
 **§15 is restored.** It read `` `123`bar `` as a set followed by `bar`, which the 2026-09-21 ruling
 had to refuse. `[123]bar` is that original meaning, spelled unambiguously.
 
-**What it cost:** two more reserved characters, so six in total — `*` `|` `` ` `` `\` `[` `]`.
+**What it cost:** two more reserved characters, so six in total, `*` `|` `` ` `` `\` `[` `]`.
 Measured before deciding: of **2,388 distinct filenames** across this estate, **zero** contain `[`,
 `]`, `` ` ``, `*`, `|` or `{`. That sample is source code; names like `[WIP] draft.md` live in
 document folders it did not reach, so the tax is small rather than provably nil.
 
-### `\-\` — not
+### `\-\`, not
 
 `\-\pattern` inverts the verdict: every label the pattern would have shown is hidden, and every
-other label is kept. It composes — `\c-\`, `\-b\` — and `-` was chosen because it is what
+other label is kept. It composes (`\c-\`, `\-b\`) and `-` was chosen because it is what
 everything from a search engine to a package manager already means by *exclude*, it needs no shift
 key, and unlike `` ` `` it is a real key on every keyboard layout. The option section admits it as
 the first non-letter.
@@ -1349,7 +1349,7 @@ the first non-letter.
 Two rulings come with it:
 
 * **Negation never inverts a refusal.** A pattern that cannot be read still matches everything, so it
-  hides nothing. Inverting that would hide **every** row over a typo — the worst outcome this
+  hides nothing. Inverting that would hide **every** row over a typo, the worst outcome this
   language can produce, reached from the one direction nobody watches.
 * **`\-\` with nothing after it is refused.** An empty pattern matches everything, so negated it
   matches nothing; it is also the state `\-\…` passes through while it is being typed. `\-\*` is
@@ -1357,10 +1357,10 @@ Two rulings come with it:
 
 **Its limit, stated plainly:** this is an *exclusion* filter, not *include-except*. `\-\a|b` is
 NOT (a OR b), which is a hide-list. *Apple, but not test* needs AND, which this language does not
-have and should not get — precedence would cost the first goal outright. A host that wants it should
+have and should not get, precedence would cost the first goal outright. A host that wants it should
 offer two boxes, include and exclude, each taking one pattern.
 
-### `\b\` — word boundary, definition B
+### `\b\`, word boundary, definition B
 
 `\b\app` matches `app`, `app-1`, `my app`, `app.md`, `app_data` and `an app.`; it does not match
 `apple`, `snapple` or `MyAppCard`.
@@ -1369,18 +1369,18 @@ offer two boxes, include and exclude, each taking one pattern.
 > number** (`\p{L}` / `\p{N}`, so it holds in any script).
 
 The test looks only at the **neighbouring** character, never at the matched text, so it stays
-decidable by reading one character. The requirement applies to the **whole match extent** — just
-before the first matched character and just after the last — not around every token, so
+decidable by reading one character. The requirement applies to the **whole match extent**, just
+before the first matched character and just after the last, not around every token, so
 `\b\app*pie` is one word-run from `app` to `pie`. At a label edge it is satisfied trivially, so
 `` \b\`app `` is just the anchor at that end.
 
 **Why not regex's `\b`:** it counts `_` as a word character, so `app_data` would *not* match a
-whole-word `app` — and `_` separates words in a filename whatever a regex thinks. Definition B was
+whole-word `app`, and `_` separates words in a filename whatever a regex thinks. Definition B was
 chosen over that, and over a third option that also broke on camelCase humps (`MyAppCard`), which
 remains addable later because B is a subset of it.
 
-**What it replaces:** whole-word `app` without this option is four alternatives —
-`` `app[-_. ]|[-_. ]app[-_. ]|[-_. ]app`|`app` `` — and the first attempt at writing that by hand,
+**What it replaces:** whole-word `app` without this option is four alternatives,
+`` `app[-_. ]|[-_. ]app[-_. ]|[-_. ]app`|`app` ``, and the first attempt at writing that by hand,
 during this very session, silently omitted `my app` and `the app`.
 
 ### Options, current
@@ -1388,7 +1388,7 @@ during this very session, silently omitted `my app` and `the app`.
 | Option | Means |
 |---|---|
 | `c` | case-sensitive literals (sets are always case-sensitive) |
-| `-` | not — invert the verdict |
+| `-` | not, invert the verdict |
 | `b` | word boundary, definition B |
 
 Unknown options are still refused rather than ignored, which is what made these two safe to add:
@@ -1404,4 +1404,150 @@ Replace `` `body` `` with `[body]` where it was a set, and drop the doubling at 
 | ``` ``123`bar ``` | `` `[123]bar `` |
 | `` bar`456`` `` | `` bar[456]` `` |
 | ``` ``123`bar`456`` ``` | `` `[123]bar[456]` `` |
-| `` *`0-9`.pdf `` | `[0-9].pdf` — the leading `*` is no longer needed |
+| `` *`0-9`.pdf `` | `[0-9].pdf`, the leading `*` is no longer needed |
+
+---
+
+## Considered and declined, 2026-09-22
+
+**A flag to un-reserve `[`, `]` and possibly `|`.** Proposed and declined the same day, recorded here
+so it is not re-litigated from scratch. Steven: *"add a flag that allows [ and ] and possibly |
+without escaping; discuss first"*, and after the discussion, *"Skip"*.
+
+### What was proposed
+
+An option letter (`\l\`) that made `[` and `]` ordinary characters, so a label like
+`[WIP] roadmap.md` could be filtered by typing `[WIP]` instead of `\[WIP\]`. Two reaches were on the
+table:
+
+* **L1**, sets off, everything else intact, so `[WIP]|[DRAFT]` still alternates.
+* **L2**, sets, alternation and groups all off: plain text with `*` and anchors, three reserved
+  characters instead of six.
+
+### Why not
+
+**The tax it removes is already small.** Measured across this estate: of **2,388 distinct
+filenames**, zero contain `[`, `]`, `` ` ``, `*`, `|` or `{`. The escape is two characters in a
+pattern typed occasionally. (That sample is source code; see the reopening condition below.)
+
+**And it would introduce a new kind of confusion.** Every other option (`c`, `-`, `b`) changes what
+*matching* means. This one changes what *parsing* means, so the same pattern would read two ways
+depending on a prefix, and *"why does `[WIP]` find nothing?"* becomes a question the language invites.
+The cheaper answer is a hint in the host on an empty result, *"`[WIP]` is a character set here"*,
+which changes no behaviour and so is not a guess.
+
+`|` was the weaker half of the ask in any case: it is **illegal in Windows filenames** and rare in
+titles, so `\|` covers it.
+
+### What was never an option
+
+**Deciding it automatically.** `[WIP]` *is* a well-formed set (one character from `W`, `I`, `P`) so
+`[WIP] roadmap` is a legal pattern with a different meaning, and nothing distinguishes the two
+intents. A heuristic on *unclosed* brackets is worse: `[abc` would be literal while `[abc]` is a set,
+so one more keystroke would silently reinterpret everything before it.
+
+### Two alternatives rejected with it
+
+* **Doubled set delimiters**, `[[0-9]]`, leaving a single `[` always literal. It follows the `||`
+  precedent and needs no flag, but it reintroduces delimiter counting (`[[a]b]]`), which is exactly
+  what moving sets into brackets deleted, and it makes `[abc]` silently literal for a reader who
+  expected a set, with no error to notice. A flag fails safer: forget it and you get a set that
+  matches nothing, which is visible.
+* **Quoting a run**, `"[WIP]"`. More expressive, since a literal chunk and a set could coexist, but
+  it reserves another character that labels genuinely contain and brings its own escaping problem.
+
+### What would reopen it
+
+Evidence that bracketed tags are a **convention** in the label space actually being filtered, rather
+than an occasional character. The estate measurement above is source code; document, download and
+media names are where `[WIP]`, `[2026]` and `IMG[1]` live, and they were not in reach when this was
+decided. If that evidence arrives, **L1 is the variant to build**, the use case that wants literal
+brackets wants alternation in the next keystroke.
+
+---
+
+## Amendment, 2026-09-23
+
+**Escapes, and one index is one character.** Two rulings, both of which also state what the earlier
+sections left unsaid.
+
+### A backslash may escape anything except an ASCII letter or digit
+
+This holds in the pattern body and inside a set body alike, and it replaces the shorter rule ruled
+earlier the same day (`\\`, `\]` and `\-` only, inside a set).
+
+```text
+x[\.]y      the literal x.y: punctuation is escapable
+[\😀]       one emoji: every non-ASCII character is escapable
+x\éy        the literal xéy
+a\ b        the literal "a b"
+[a\-z]      a, - and z: an escaped dash is not a range
+[a\]b]      a, ] and b: an escaped bracket does not close the set
+[\\]        one backslash
+
+foo\d       REFUSED
+[\n]        REFUSED
+\bapp\b     REFUSED
+\cfoo       REFUSED
+```
+
+**Punctuation, symbols and non-ASCII characters are literals with or without the backslash**, so
+escaping them is harmless and permitted, which is what makes a pattern for a character nobody can
+type reliably writable at all.
+
+**A letter or digit after a backslash is refused**, because `\n`, `\d`, `\w` and `\b` are classes to
+any reader who has met a regular expression, and would quietly mean the letter here. The most valuable
+refusal is `\bapp\b` (the regex idiom for a whole word) which would otherwise match the literal
+`bappb`. `\b\app` is the option that means it. This is the same ruling as refusing an unknown option,
+applied one level down.
+
+### One index is one character
+
+**Every implementation walks code points**, in the pattern, in the label and in a set body.
+
+This was not stated before because it had never been asked, and the answer differed: JavaScript strings
+index by UTF-16 code unit, so `[😀]` held two half-surrogates and `x[😀]y` did not match `x😀y`, while
+the Rust, Python, Go and PHP implementations, which index by code point, matched it. Five
+implementations agreed about a question none of them had been asked.
+
+A consequence worth stating: **a set holds characters, not code units**, so `[😀🎉]` is a set of two
+members, and `*` spans whole characters.
+
+The case-folding guard already in force follows from the same rule, a character is folded **only when
+its lower case is one character**, because the folded text and the raw text are walked at the same
+index, and `İ` would otherwise slide them apart.
+
+### `\…\` is the instruction namespace
+
+The section between a leading backslash and the next one is an **instruction section**. It holds
+letters, digits and `-`, it is read as instructions whatever it contains, and **an instruction that
+names nothing is refused**:
+
+```text
+\c\apple      case-sensitive
+\-b\app       not, and whole-word: instructions compose in any order
+\v2\foo       REFUSED: unknown instruction v2
+\2\foo        REFUSED: unknown instruction 2
+```
+
+**This is a reservation, and the point of making it is that it costs nothing today.** Every spelling
+it claims is already an error (an escaped letter or digit) so no pattern that works can change
+meaning when an instruction is added later. That is the same mechanism that let `\-\` and `\b\` be
+added a day after unknown options were first refused.
+
+**It claims no punctuation, deliberately.** `\.foo\.bar` and `\ a\ b` are escaped literals and must
+stay literals, so an instruction that one day needs `=` or `,` claims that character then, and pays
+for it then. The three instructions are `c`, `-` and `b`; §10 calls them options, which is the older
+word for the same thing.
+
+
+---
+
+## Licensing of this document
+
+**This specification text is licensed CC BY 4.0.** Copyright 2026 Steven Spungin.
+
+The implementations are **MIT**, which is a different licence for a different thing: the package's
+`license` field names MIT because that is what the code is, and this document travels inside the same
+tarball under the licence above. Per Code-Evolve Governance, specification text is CC BY 4.0, and a
+package carrying both says so rather than letting the manifest speak for the prose.

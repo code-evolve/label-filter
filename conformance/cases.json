@@ -1,0 +1,1078 @@
+{
+  "version": 1,
+  "describes": "docs/syntax.md",
+  "contract": {
+    "case": "compile(pattern) must succeed; every label in `match` must match; every label in `noMatch` must not",
+    "error": "compile(pattern) must REFUSE with a message, and the refused matcher must then match every label: a pattern nobody could read hides nothing",
+    "junk": "compile(pattern) and one match call must not crash, whatever was typed"
+  },
+  "cases": [
+    {
+      "section": "§3 default contains, case-insensitive",
+      "pattern": "apple",
+      "match": [
+        "apple",
+        "Apple",
+        "APPLE",
+        "Green Apple",
+        "pineAPPLE"
+      ],
+      "noMatch": [
+        "banana"
+      ]
+    },
+    {
+      "section": "§4 wildcard",
+      "pattern": "apple*pie",
+      "match": [
+        "applepie",
+        "apple pie",
+        "apple-and-pear-pie"
+      ],
+      "noMatch": [
+        "apple",
+        "pie",
+        "banana pie"
+      ]
+    },
+    {
+      "section": "§5 start anchor",
+      "pattern": "`apple",
+      "match": [
+        "apple",
+        "apple pie",
+        "apples"
+      ],
+      "noMatch": [
+        "green apple",
+        "pineapple"
+      ]
+    },
+    {
+      "section": "§5 end anchor",
+      "pattern": "apple`",
+      "match": [
+        "apple",
+        "green apple",
+        "pineapple"
+      ],
+      "noMatch": [
+        "apple pie",
+        "apples"
+      ]
+    },
+    {
+      "section": "§5 both anchors, case-insensitive",
+      "pattern": "`apple`",
+      "match": [
+        "apple",
+        "Apple",
+        "APPLE"
+      ],
+      "noMatch": [
+        "apple pie",
+        "green apple"
+      ]
+    },
+    {
+      "section": "§5 case-sensitive exact",
+      "pattern": "\\c\\`apple`",
+      "match": [
+        "apple"
+      ],
+      "noMatch": [
+        "Apple",
+        "APPLE"
+      ]
+    },
+    {
+      "section": "§6 set mid-pattern",
+      "pattern": "foo[123]bar",
+      "match": [
+        "foo1bar",
+        "foo2bar",
+        "foo3bar"
+      ],
+      "noMatch": [
+        "foo4bar",
+        "foobar",
+        "foo12bar"
+      ]
+    },
+    {
+      "section": "§6 range: digit",
+      "pattern": "x[0-9]y",
+      "match": [
+        "x0y",
+        "x9y"
+      ],
+      "noMatch": [
+        "xay",
+        "xy"
+      ]
+    },
+    {
+      "section": "§6 range: lowercase",
+      "pattern": "x[a-z]y",
+      "match": [
+        "xay",
+        "xzy"
+      ],
+      "noMatch": [
+        "x0y",
+        "xAy"
+      ]
+    },
+    {
+      "section": "§6 range: letter",
+      "pattern": "x[A-Za-z]y",
+      "match": [
+        "xAy",
+        "xzy"
+      ],
+      "noMatch": [
+        "x0y"
+      ]
+    },
+    {
+      "section": "§6 range: hex",
+      "pattern": "x[0-9A-F]y",
+      "match": [
+        "x0y",
+        "xFy"
+      ],
+      "noMatch": [
+        "xGy",
+        "xfy"
+      ]
+    },
+    {
+      "section": "§6 an escaped dash is a literal, not a range",
+      "pattern": "x[a\\-z]y",
+      "match": [
+        "xay",
+        "x-y",
+        "xzy"
+      ],
+      "noMatch": [
+        "xby",
+        "xmy"
+      ],
+      "note": "The only way to ask for a literal dash between two other characters."
+    },
+    {
+      "section": "§6 an escaped ] is a literal, and does not close the set",
+      "pattern": "x[a\\]b]y",
+      "match": [
+        "xay",
+        "x]y",
+        "xby"
+      ],
+      "noMatch": [
+        "xcy",
+        "x[y"
+      ]
+    },
+    {
+      "section": "§6 an escaped backslash is a literal backslash",
+      "pattern": "x[\\\\]y",
+      "match": [
+        "x\\y"
+      ],
+      "noMatch": [
+        "xy",
+        "x/y"
+      ]
+    },
+    {
+      "section": "§6 the three escapes together",
+      "pattern": "[\\\\\\]\\-]",
+      "match": [
+        "a\\b",
+        "a]b",
+        "a-b"
+      ],
+      "noMatch": [
+        "ab",
+        "a/b"
+      ]
+    },
+    {
+      "section": "§6 a leading dash is a literal",
+      "pattern": "x[-9]y",
+      "match": [
+        "x-y",
+        "x9y"
+      ],
+      "noMatch": [
+        "x0y"
+      ]
+    },
+    {
+      "section": "§7 set + start anchor",
+      "pattern": "`[123]bar",
+      "match": [
+        "1bar4",
+        "2bar5",
+        "3bar6"
+      ],
+      "noMatch": [
+        "x1bar4",
+        "11bar4"
+      ],
+      "note": "§7 used to be four sections of doubled backticks. Since sets moved to […] a set beside an anchor needs nothing special, and the section is gone."
+    },
+    {
+      "section": "§7 set + end anchor",
+      "pattern": "bar[456]`",
+      "match": [
+        "1bar4",
+        "bar5",
+        "xbar6"
+      ],
+      "noMatch": [
+        "bar7",
+        "bar4x"
+      ]
+    },
+    {
+      "section": "§7 set + both anchors",
+      "pattern": "`[123]bar[456]`",
+      "match": [
+        "1bar4",
+        "1bar5",
+        "1bar6",
+        "2bar4",
+        "3bar6"
+      ],
+      "noMatch": [
+        "x1bar4",
+        "1bar4x",
+        "11bar4",
+        "1bar44"
+      ]
+    },
+    {
+      "section": "§8 OR contains",
+      "pattern": "apple|banana",
+      "match": [
+        "apple",
+        "Banana Bread",
+        "green apple"
+      ],
+      "noMatch": [
+        "cherry"
+      ]
+    },
+    {
+      "section": "§8 OR of start anchors",
+      "pattern": "`apple|`banana",
+      "match": [
+        "apple pie",
+        "banana bread"
+      ],
+      "noMatch": [
+        "green apple",
+        "a banana"
+      ]
+    },
+    {
+      "section": "§8 OR of end anchors",
+      "pattern": "apple`|banana`",
+      "match": [
+        "green apple",
+        "a banana"
+      ],
+      "noMatch": [
+        "apple pie",
+        "banana bread"
+      ]
+    },
+    {
+      "section": "§9 literal asterisk",
+      "pattern": "version\\*2",
+      "match": [
+        "version*2"
+      ],
+      "noMatch": [
+        "version2",
+        "versionX2"
+      ]
+    },
+    {
+      "section": "§9 literal pipe",
+      "pattern": "foo\\|bar",
+      "match": [
+        "foo|bar"
+      ],
+      "noMatch": [
+        "foo",
+        "bar"
+      ]
+    },
+    {
+      "section": "§9 literal backtick",
+      "pattern": "foo\\`bar",
+      "match": [
+        "foo`bar"
+      ],
+      "noMatch": [
+        "foobar"
+      ]
+    },
+    {
+      "section": "§9 literal backslash",
+      "pattern": "foo\\\\bar",
+      "match": [
+        "foo\\bar"
+      ],
+      "noMatch": [
+        "foobar"
+      ]
+    },
+    {
+      "section": "§9 literal brackets",
+      "pattern": "a\\[b\\]c",
+      "match": [
+        "a[b]c",
+        "xa[b]cy"
+      ],
+      "noMatch": [
+        "abc",
+        "a[bc"
+      ]
+    },
+    {
+      "section": "§9 a pattern that is only an escaped backslash",
+      "pattern": "\\\\",
+      "match": [
+        "a\\b",
+        "C:\\Users",
+        "\\"
+      ],
+      "noMatch": [
+        "ab",
+        "foo"
+      ],
+      "note": "Reported 2026-09-22: it matched EVERY label, because it was read as an option prefix with an empty option section. A lone \\\\ was right throughout, so two spellings of one thing disagreed and the wrong one was the confident match-all."
+    },
+    {
+      "section": "§9 a lone backslash reads the same way",
+      "pattern": "\\",
+      "match": [
+        "a\\b"
+      ],
+      "noMatch": [
+        "ab"
+      ]
+    },
+    {
+      "section": "§9 an escaped backslash opening a pattern",
+      "pattern": "\\\\foo",
+      "match": [
+        "\\foo",
+        "x\\foo"
+      ],
+      "noMatch": [
+        "foo",
+        "dfoo"
+      ]
+    },
+    {
+      "section": "§10 case-sensitive contains",
+      "pattern": "\\c\\apple",
+      "match": [
+        "apple",
+        "green apple"
+      ],
+      "noMatch": [
+        "Apple",
+        "APPLE"
+      ]
+    },
+    {
+      "section": "§10 case-sensitive start",
+      "pattern": "\\c\\`apple",
+      "match": [
+        "apple pie"
+      ],
+      "noMatch": [
+        "Apple pie"
+      ]
+    },
+    {
+      "section": "§10 case-sensitive end",
+      "pattern": "\\c\\apple`",
+      "match": [
+        "green apple"
+      ],
+      "noMatch": [
+        "green Apple"
+      ]
+    },
+    {
+      "section": "§10 an option prefix is still read when it is really there",
+      "pattern": "\\c\\`apple`",
+      "match": [
+        "apple"
+      ],
+      "noMatch": [
+        "Apple"
+      ]
+    },
+    {
+      "section": "§10 an escaped backslash is not an option prefix",
+      "pattern": "\\\\c\\\\",
+      "match": [
+        "a\\c\\b"
+      ],
+      "noMatch": [
+        "ac",
+        "c",
+        "apple"
+      ]
+    },
+    {
+      "section": "§14 unanchored is *foo*",
+      "pattern": "foo",
+      "match": [
+        "xfooy",
+        "foo"
+      ],
+      "noMatch": [
+        "fo o"
+      ]
+    },
+    {
+      "section": "§15 unanchored set, restored",
+      "pattern": "[123]bar",
+      "match": [
+        "1bar4",
+        "x2bar5"
+      ],
+      "noMatch": [
+        "xbar",
+        "bar"
+      ],
+      "note": "The spec’s original reading, which the backtick spelling had to refuse."
+    },
+    {
+      "section": "ruling: anchor then set, no end anchor",
+      "pattern": "`in*[y]",
+      "match": [
+        "inky",
+        "in-a-y",
+        "iny",
+        "inkyy"
+      ],
+      "noMatch": [
+        "in",
+        "inka",
+        "xinky"
+      ]
+    },
+    {
+      "section": "ruling: the same with a set at the end of the scan",
+      "pattern": "`in*[t]",
+      "match": [
+        "inst",
+        "int"
+      ],
+      "noMatch": [
+        "ins",
+        "xint"
+      ]
+    },
+    {
+      "section": "group: under both anchors",
+      "pattern": "`||apple|pear||`",
+      "match": [
+        "apple",
+        "pear",
+        "Apple"
+      ],
+      "noMatch": [
+        "apple pie",
+        "pineapple",
+        "pears"
+      ]
+    },
+    {
+      "section": "group: after a wildcard",
+      "pattern": "*.||md|txt||",
+      "match": [
+        "notes.txt",
+        "README.md"
+      ],
+      "noMatch": [
+        "notes.text",
+        "package.json"
+      ]
+    },
+    {
+      "section": "group: shared prefix under a start anchor",
+      "pattern": "`||src|test||/",
+      "match": [
+        "src/index.js",
+        "test/conformance.mjs"
+      ],
+      "noMatch": [
+        "x/src/a",
+        "srctest/"
+      ]
+    },
+    {
+      "section": "group: holding a set, both anchors",
+      "pattern": "`IMG_04||2|3||[0-9]`",
+      "match": [
+        "IMG_0421",
+        "IMG_0430"
+      ],
+      "noMatch": [
+        "IMG_0441",
+        "IMG_04212"
+      ]
+    },
+    {
+      "section": "group: a set opens a branch",
+      "pattern": "||[12]x|zz||",
+      "match": [
+        "1x",
+        "2x",
+        "zz",
+        "a1x"
+      ],
+      "noMatch": [
+        "3x",
+        "x"
+      ],
+      "note": "A set may open a branch: the rule it would otherwise break is that a set cannot open with a backtick that has nothing before it, and || is something before it."
+    },
+    {
+      "section": "group: two groups multiply out",
+      "pattern": "||a|b||-||x|y||",
+      "match": [
+        "a-x",
+        "b-y",
+        "zzb-xzz"
+      ],
+      "noMatch": [
+        "a-z",
+        "c-x"
+      ]
+    },
+    {
+      "section": "a set is case-sensitive, a literal is not",
+      "pattern": "`[A-Z]ocker",
+      "match": [
+        "Dockerfile",
+        "DOCKERFILE",
+        "Docker"
+      ],
+      "noMatch": [
+        "dockerfile",
+        "docker-compose.yml"
+      ],
+      "note": "Both halves of the rule in one pattern: the set refuses a lowercase D while the literal `ocker` still matches OCKER."
+    },
+    {
+      "section": "both cases are had by asking for both",
+      "pattern": "x[A-Za-z]y",
+      "match": [
+        "xAy",
+        "xay",
+        "xZy"
+      ],
+      "noMatch": [
+        "x0y"
+      ]
+    },
+    {
+      "section": "\\c\\ governs literals only, so a digit set is unaffected by it",
+      "pattern": "\\c\\Foo[0-9]",
+      "match": [
+        "Foo1"
+      ],
+      "noMatch": [
+        "foo1",
+        "Fooa"
+      ]
+    },
+    {
+      "section": "\\-\\ hides what the pattern finds",
+      "pattern": "\\-\\test",
+      "match": [
+        "src/index.js",
+        "README.md"
+      ],
+      "noMatch": [
+        "test/a.mjs",
+        "my TEST file"
+      ]
+    },
+    {
+      "section": "\\-\\ over alternatives is NOT (a OR b)",
+      "pattern": "\\-\\test|spec",
+      "match": [
+        "src/index.js"
+      ],
+      "noMatch": [
+        "test/a.mjs",
+        "a.spec.ts"
+      ]
+    },
+    {
+      "section": "\\-\\* hides everything, and says so on purpose",
+      "pattern": "\\-\\*",
+      "match": [],
+      "noMatch": [
+        "",
+        "anything"
+      ]
+    },
+    {
+      "section": "\\b\\ whole word",
+      "pattern": "\\b\\app",
+      "match": [
+        "app",
+        "app-1",
+        "my app",
+        "app.md",
+        "app_data",
+        "an app."
+      ],
+      "noMatch": [
+        "apple",
+        "snapple",
+        "MyAppCard"
+      ]
+    },
+    {
+      "section": "\\b\\ leaves a camelCase hump alone, as definition B says",
+      "pattern": "\\b\\app",
+      "match": [
+        "app/x"
+      ],
+      "noMatch": [
+        "MyAppCard.vue"
+      ],
+      "note": "Definition B is the label’s edge or a neighbouring character that is not a letter or a number: which makes _ a separator, where a regex’s own \\b does not."
+    },
+    {
+      "section": "\\b\\ with a set",
+      "pattern": "\\b\\[0-9]",
+      "match": [
+        "a-1",
+        "1",
+        "x 2 y"
+      ],
+      "noMatch": [
+        "a1",
+        "12"
+      ]
+    },
+    {
+      "section": "\\b\\ with an anchor is just the anchor at that end",
+      "pattern": "\\b\\`app",
+      "match": [
+        "app",
+        "app-1"
+      ],
+      "noMatch": [
+        "apple",
+        "my app"
+      ]
+    },
+    {
+      "section": "\\b\\ and \\-\\ compose",
+      "pattern": "\\-b\\app",
+      "match": [
+        "apple",
+        "snapple"
+      ],
+      "noMatch": [
+        "app",
+        "my app"
+      ]
+    },
+    {
+      "section": "unicode: a set of astral characters",
+      "pattern": "[😀🎉]",
+      "match": [
+        "😀",
+        "x🎉y",
+        "🎉"
+      ],
+      "noMatch": [
+        "z",
+        "",
+        "x"
+      ],
+      "note": "**One index must be one character.** JavaScript strings index by UTF-16 code unit, so until 2026-09-23 this set held two half-surrogates and the reference implementation disagreed with the other four: sometimes answering false, sometimes true on a half match. Astral cases live in the fixture because every port indexes differently by default."
+    },
+    {
+      "section": "unicode: an astral set under both anchors",
+      "pattern": "`[😀]`",
+      "match": [
+        "😀"
+      ],
+      "noMatch": [
+        "😀x",
+        "x😀",
+        "😀😀"
+      ]
+    },
+    {
+      "section": "unicode: an astral set between literals",
+      "pattern": "x[😀]y",
+      "match": [
+        "x😀y",
+        "ax😀yb"
+      ],
+      "noMatch": [
+        "xy",
+        "x😀z"
+      ]
+    },
+    {
+      "section": "unicode: an astral literal",
+      "pattern": "`a😀`",
+      "match": [
+        "a😀"
+      ],
+      "noMatch": [
+        "a",
+        "😀",
+        "a😀b"
+      ]
+    },
+    {
+      "section": "unicode: an accented set member",
+      "pattern": "[é]",
+      "match": [
+        "café",
+        "é"
+      ],
+      "noMatch": [
+        "cafe",
+        "e"
+      ]
+    },
+    {
+      "section": "unicode: a literal folds for case beyond ASCII",
+      "pattern": "`café`",
+      "match": [
+        "café",
+        "CAFÉ",
+        "Café"
+      ],
+      "noMatch": [
+        "cafe"
+      ]
+    },
+    {
+      "section": "unicode: \\c\\ holds the case beyond ASCII too",
+      "pattern": "\\c\\`café`",
+      "match": [
+        "café"
+      ],
+      "noMatch": [
+        "CAFÉ",
+        "Café"
+      ]
+    },
+    {
+      "section": "unicode: a set is case-sensitive beyond ASCII as well",
+      "pattern": "[É]",
+      "match": [
+        "CAFÉ"
+      ],
+      "noMatch": [
+        "café"
+      ]
+    },
+    {
+      "section": "unicode: an astral character counts as one for a wildcard",
+      "pattern": "`a*b`",
+      "match": [
+        "a😀b",
+        "ab",
+        "a😀🎉b"
+      ],
+      "noMatch": [
+        "a😀",
+        "😀b"
+      ]
+    },
+    {
+      "section": "unicode: a boundary treats an emoji as a separator",
+      "pattern": "\\b\\app",
+      "match": [
+        "😀app😀",
+        "app"
+      ],
+      "noMatch": [
+        "apple"
+      ],
+      "note": "An emoji is neither a letter nor a number, so definition B makes it a boundary."
+    },
+    {
+      "section": "§9 escaping a symbol is allowed and means the symbol",
+      "pattern": "x[\\.]y",
+      "match": [
+        "x.y"
+      ],
+      "noMatch": [
+        "xay",
+        "xy"
+      ],
+      "note": "Harmless and permitted: a dot is a literal with or without the backslash."
+    },
+    {
+      "section": "§9 escaping an emoji is allowed, inside a set",
+      "pattern": "[\\😀]",
+      "match": [
+        "😀",
+        "a😀b"
+      ],
+      "noMatch": [
+        "a",
+        "🎉"
+      ]
+    },
+    {
+      "section": "§9 escaping an emoji is allowed, in the pattern body",
+      "pattern": "`a\\😀`",
+      "match": [
+        "a😀"
+      ],
+      "noMatch": [
+        "a",
+        "a😀b"
+      ]
+    },
+    {
+      "section": "§9 escaping an accented letter is allowed: it is not ASCII",
+      "pattern": "x\\éy",
+      "match": [
+        "xéy"
+      ],
+      "noMatch": [
+        "xey"
+      ]
+    },
+    {
+      "section": "§9 escaping a space is allowed",
+      "pattern": "a\\ b",
+      "match": [
+        "a b"
+      ],
+      "noMatch": [
+        "ab"
+      ]
+    },
+    {
+      "section": "§10 the instruction namespace claims no punctuation",
+      "pattern": "\\.foo\\.bar",
+      "match": [
+        ".foo.bar",
+        "x.foo.bary"
+      ],
+      "noMatch": [
+        "foobar",
+        ".foo"
+      ],
+      "note": "`\\.foo\\.bar` is two escaped dots around literals, and must stay that way: claiming punctuation for the namespace would silently turn this into an unknown instruction."
+    },
+    {
+      "section": "§10 an escaped space is not an instruction section either",
+      "pattern": "\\ a\\ b",
+      "match": [
+        " a b"
+      ],
+      "noMatch": [
+        "ab",
+        "a b"
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "why": "a backtick in the body",
+      "pattern": "a`b",
+      "note": "One rule refuses every spelling in this table that involves a backtick: it is an anchor, so it belongs at the very start or the very end. Before sets moved to […] each needed its own ruling."
+    },
+    {
+      "why": "§15 in its old spelling, now that a backtick cannot open a set",
+      "pattern": "`123`bar"
+    },
+    {
+      "why": "the old set-opening spelling",
+      "pattern": "foo`123`"
+    },
+    {
+      "why": "`123`` -- three ticks, two of them in the middle",
+      "pattern": "`123``"
+    },
+    {
+      "why": "`123`* -- a tick that is neither first nor last",
+      "pattern": "`123`*"
+    },
+    {
+      "why": "`1`` -- the shape reported on 2026-09-22",
+      "pattern": "`1``"
+    },
+    {
+      "why": "an empty set",
+      "pattern": "[]"
+    },
+    {
+      "why": "a set opened and never closed",
+      "pattern": "foo[123"
+    },
+    {
+      "why": "a closing bracket with nothing open",
+      "pattern": "foo]bar"
+    },
+    {
+      "why": "[\\n]: a regex habit that would silently mean the letter n",
+      "pattern": "x[\\n]y",
+      "note": "Ruled 2026-09-23: unicode and emoji must be escapable, and only \\\\ \\] \\- were. The rule that grants both: a backslash may escape anything EXCEPT an ASCII letter or digit. Punctuation, symbols and every non-ASCII character are literals either way, so escaping them is harmless; a letter after a backslash is a regex class to the reader and the letter itself here, which is the silent misread this language refuses."
+    },
+    {
+      "why": "[\\d]: the same, for a digit class",
+      "pattern": "[\\d]"
+    },
+    {
+      "why": "[\\b]: the same, for a word boundary",
+      "pattern": "x[\\b]"
+    },
+    {
+      "why": "[\\q]: an escape with no meaning anywhere",
+      "pattern": "[\\q]"
+    },
+    {
+      "why": "`a|b` -- anchors do not wrap alternatives",
+      "pattern": "`a|b`",
+      "note": "The trap groups exist to replace: it parsed cleanly as \"starts with a\" OR \"ends with b\"."
+    },
+    {
+      "why": "`a|b|c` -- the same trap with three alternatives",
+      "pattern": "`a|b|c`"
+    },
+    {
+      "why": "an unclosed group",
+      "pattern": "a||b"
+    },
+    {
+      "why": "groups do not nest -- the middle || closes, the last one is left open",
+      "pattern": "||a||b||"
+    },
+    {
+      "why": "three bars in a row are never a guess",
+      "pattern": "a|||b",
+      "note": "This one rule is what keeps || decidable, and it is also what makes an empty group and an empty branch unwritable."
+    },
+    {
+      "why": "an anchor cannot go inside a group",
+      "pattern": "||a`|b||"
+    },
+    {
+      "why": "a group whose branch is itself unreadable",
+      "pattern": "||a[b|c||"
+    },
+    {
+      "why": "an unknown option is refused, not ignored",
+      "pattern": "\\d\\foo",
+      "note": "Refusing the unknown is what later made \\-\\ and \\b\\ safe to add: neither changed the meaning of a pattern that already worked."
+    },
+    {
+      "why": "an unknown option among known ones",
+      "pattern": "\\cz\\foo"
+    },
+    {
+      "why": "negation with no pattern",
+      "pattern": "\\-\\",
+      "note": "An empty pattern matches everything, so negated it matches nothing: the confident empty, reached from the other side."
+    },
+    {
+      "why": "negation over nothing but empty alternatives",
+      "pattern": "\\-\\|"
+    },
+    {
+      "why": "negation over an unreadable pattern",
+      "pattern": "\\-\\a`b"
+    },
+    {
+      "why": "foo\\d: a digit class outside a set, which would silently mean the letter d",
+      "pattern": "foo\\d"
+    },
+    {
+      "why": "\\bapp\\b: the regex idiom for a word boundary, which would silently mean bappb",
+      "pattern": "\\bapp\\b",
+      "note": "The most valuable refusal of the set: `\\b\\app` is the boundary option, and this spelling would otherwise match the literal `bappb`."
+    },
+    {
+      "why": "\\cfoo: an option prefix with no closing backslash",
+      "pattern": "\\cfoo"
+    },
+    {
+      "why": "x[\\Z]y: an uppercase letter is refused too",
+      "pattern": "x[\\Z]y"
+    },
+    {
+      "why": "\\v2\\foo: an unknown instruction, named as one rather than as a bad escape",
+      "pattern": "\\v2\\foo",
+      "note": "**`\\…\\` is the instruction namespace.** A section of letters, digits and `-` is READ as an instruction section and refused when it names nothing: which is what lets a future instruction be added without changing the meaning of any pattern that works today. Ruled 2026-09-23."
+    },
+    {
+      "why": "\\2\\foo: a digit section is an instruction section too",
+      "pattern": "\\2\\foo"
+    }
+  ],
+  "junk": [
+    "`",
+    "``",
+    "\\",
+    "\\\\",
+    "|",
+    "||",
+    "`|`",
+    "\\c\\",
+    "[a-]",
+    "[-z]",
+    "*",
+    "**",
+    "|||",
+    "a||",
+    "||||",
+    "||a",
+    "`||`",
+    "||||||",
+    "||\\|||",
+    "[",
+    "]",
+    "[[]",
+    "[]]",
+    "\\-\\",
+    "\\b\\",
+    "\\-b\\",
+    "\\-c\\[",
+    "`[`",
+    "[`]",
+    "[\\",
+    "[\\]",
+    "[a\\",
+    "[\\-]",
+    "[\\]]",
+    "[😀",
+    "😀]",
+    "\\😀",
+    "[\\😀]",
+    "`😀`",
+    "\\é",
+    "[\\ ]",
+    "\\1",
+    "[\\9]"
+  ]
+}
