@@ -119,6 +119,25 @@ def _fold(s: str) -> str:
     return "".join(_fold_char(c) for c in s)
 
 
+def _leading_option_section(alt: str) -> str | None:
+    """An option section at the start of an alternative, which is never what it looks like.
+
+    Options are global: the prefix is read once, off the whole pattern, before it is split on
+    ``|``. So ``apple|\\-\\pear`` cannot mean *contains apple OR not pear*. Refused 2026-09-24,
+    for the same reason ``` `a|b` ``` is refused: it parses cleanly and answers a different
+    question. See the TypeScript implementation for why only ``-`` still reached this point.
+    """
+    if not alt.startswith("\\"):
+        return None
+    end_i = alt.find("\\", 1)
+    if end_i <= 0:
+        return None
+    section = alt[1:end_i]
+    if not section or not all(c.isascii() and (c.isalnum() or c == "-") for c in section):
+        return None
+    return section
+
+
 def _has_bar_run(s: str) -> bool:
     """Whether any run of unescaped ``|`` is three or more long.
 
@@ -397,8 +416,17 @@ def parse_pattern(pattern: str) -> ParsedPattern:
     sources, unclosed = _split_alternatives(rest)
     parsed = [_parse_alternative(a) for a in sources]
 
+    # An option section that is NOT the prefix: ``rest`` already had the real one removed, so
+    # anything still shaped like one sits in a later alternative or after a first prefix.
+    misplaced = next((m for m in (_leading_option_section(a) for a in sources) if m), None)
+
     if option_error:
         error = option_error
+    elif misplaced:
+        error = (
+            f"\\{misplaced}\\ applies to the whole pattern, so it cannot open an alternative "
+            "— move it to the very start, before the first |"
+        )
     elif _has_bar_run(rest):
         error = (
             "three or more | in a row — | separates alternatives, || opens or closes a group, "

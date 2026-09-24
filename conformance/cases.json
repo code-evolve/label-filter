@@ -894,6 +894,42 @@
         "ab",
         "a b"
       ]
+    },
+    {
+      "section": "§10 a dash needs no escape outside a set, so the refusal above costs nothing",
+      "pattern": "a|--",
+      "match": [
+        "a",
+        "x--y"
+      ],
+      "noMatch": [
+        "b",
+        "x-y"
+      ],
+      "note": "The replacement spelling for anything the new refusal rejects: - is only special inside […]."
+    },
+    {
+      "section": "§10 an escaped backslash opening an alternative is not an option section",
+      "pattern": "a|\\\\b",
+      "match": [
+        "a",
+        "x\\by"
+      ],
+      "noMatch": [
+        "b",
+        "xby"
+      ]
+    },
+    {
+      "section": "§10 an escaped punctuation character opening an alternative is not an option section",
+      "pattern": "a|\\.x",
+      "match": [
+        "a",
+        "y.xz"
+      ],
+      "noMatch": [
+        "xy"
+      ]
     }
   ],
   "errors": [
@@ -1028,6 +1064,27 @@
     {
       "why": "\\2\\foo: a digit section is an instruction section too",
       "pattern": "\\2\\foo"
+    },
+    {
+      "why": "§10 an option section cannot open a later alternative",
+      "pattern": "a|\\-\\",
+      "note": "Options are read once off the whole pattern, before it is split on |, so this cannot mean 'contains a OR not ...'. Refused 2026-09-24; it used to parse as the literal dash-backslash and answer a different question."
+    },
+    {
+      "why": "§10 the same, with something after the section",
+      "pattern": "a|\\-\\."
+    },
+    {
+      "why": "§10 a letter option in a later alternative, refused by this rule rather than by the escape rule",
+      "pattern": "apple|\\c\\pear"
+    },
+    {
+      "why": "§10 a second option section after the real prefix",
+      "pattern": "\\c\\\\-\\a"
+    },
+    {
+      "why": "§10 an option section opening a group branch",
+      "pattern": "x|||a|\\-\\y||"
     }
   ],
   "junk": [

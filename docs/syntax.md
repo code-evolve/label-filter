@@ -520,6 +520,11 @@ General form:
 
 The second `\` marks the end of the option section. Everything following it is parsed as the normal pattern syntax.
 
+**The section is read once, from the start of the whole pattern, before the pattern is split on `|`.**
+So an option applies to every alternative, and a section written at the start of an alternative is
+refused rather than read as an option or as the literals it is made of. See the amendment of
+2026-09-24.
+
 ### Case sensitivity
 
 Matching is **case-insensitive by default**.
@@ -1541,6 +1546,56 @@ stay literals, so an instruction that one day needs `=` or `,` claims that chara
 for it then. The three instructions are `c`, `-` and `b`; §10 calls them options, which is the older
 word for the same thing.
 
+
+---
+
+## Amendment, 2026-09-24
+
+**An option section cannot open an alternative.** Steven:
+
+> ok refuse
+
+Options are global. §10 says the section is read from the start of the pattern, and §13 splits on `|`
+only after it has been removed, so a section written anywhere else is not an option at all. Until now
+it was whatever its characters happened to mean:
+
+```text
+apple|\-\pear      <- reads as "contains apple, or not pear". Refused since 2026-09-24
+\-\apple|pear      <- what that spelling means: NOT (contains apple OR contains pear)
+```
+
+**The rule.** After the option prefix has been read, no alternative may begin with `\`, one or more
+characters from the instruction alphabet, `\`. The refusal names the section and where it belongs:
+*"`\-\` applies to the whole pattern, so it cannot open an alternative, move it to the very start,
+before the first `|`."* It applies to a `||…||` branch too, because a branch becomes an alternative
+before this is checked.
+
+### Why this was worth a breaking change and the earlier form was not
+
+This is the same family as `` `a|b` ``: a spelling that parses cleanly, reads as one thing and means
+another. What makes it worth its own ruling is not the misread, which had already shrunk, but an
+inconsistency left behind when it shrank.
+
+The 2026-09-23 rule that a backslash may not escape a letter or digit closed every spelling whose
+option characters are letters. `apple|\c\pear` was refused from that day, and so was `a|\b\c`. What
+survived was `-`, which is legally escapable, so the language refused an option section in a later
+alternative when it was spelled with `c` or `b` and accepted it when spelled with `-`. **One rule per
+option letter is not a rule anybody can hold in their head**, and four ports each had to encode
+whichever answer was chosen.
+
+### What it costs
+
+Almost nothing, because **a dash needs no escape outside a set**. Everything the refusal rejects has a
+shorter spelling that was always available:
+
+```text
+a|--          <- contains a, or contains two dashes. Unaffected, and always was
+a|\-\-       <- refused now, and was never the way to write the line above
+```
+
+The cost is paid once, by this specification, in exchange for one sentence covering all three
+instructions. Recorded as a breaking change in `changelog.md`; the fixture grew three cases and five
+refusals, and all five implementations were changed together.
 
 ---
 

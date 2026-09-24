@@ -105,8 +105,18 @@ final class LabelFilter
         [$sources, $unclosed] = self::splitAlternatives($rest);
         $parsed = array_map([self::class, 'parseAlternative'], $sources);
 
+        // An option section that is NOT the prefix: $rest already had the real one removed, so
+        // anything still shaped like one sits in a later alternative or after a first prefix.
+        $misplaced = null;
+        foreach ($sources as $src) {
+            $found = self::leadingOptionSection($src);
+            if ($found !== null) { $misplaced = $found; break; }
+        }
+
         if ($optionError !== null) {
             $m->error = $optionError;
+        } elseif ($misplaced !== null) {
+            $m->error = "\\{$misplaced}\\ applies to the whole pattern, so it cannot open an alternative — move it to the very start, before the first |";
         } elseif (self::hasBarRun($rest)) {
             $m->error = 'three or more | in a row — | separates alternatives, || opens or closes a group, and a literal bar is \\|';
         } elseif ($unclosed) {
@@ -275,6 +285,31 @@ final class LabelFilter
             if ($c >= $lo && $c <= $hi) { return true; }
         }
         return false;
+    }
+
+    /**
+     * An option section at the start of an alternative, which is never what it looks like.
+     *
+     * Options are global: the prefix is read once, off the whole pattern, before it is split on |,
+     * so apple|\-\pear cannot mean "contains apple OR not pear". Refused 2026-09-24 for the same
+     * reason `a|b` is refused: it parses cleanly and answers a different question. See the
+     * TypeScript implementation for why only - still reached this point.
+     * @param string[] $alt
+     */
+    private static function leadingOptionSection(array $alt): ?string
+    {
+        if (($alt[0] ?? null) !== '\\') { return null; }
+        $end = -1;
+        for ($i = 1; $i < count($alt); $i++) {
+            if ($alt[$i] === '\\') { $end = $i; break; }
+        }
+        if ($end <= 0) { return null; }
+        $section = array_slice($alt, 1, $end - 1);
+        if (count($section) === 0) { return null; }
+        foreach ($section as $c) {
+            if (!preg_match('/^[A-Za-z0-9-]$/', $c)) { return null; }
+        }
+        return implode('', $section);
     }
 
     /**

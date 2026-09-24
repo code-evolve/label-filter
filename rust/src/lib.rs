@@ -339,9 +339,18 @@ impl Parser {
         let parsed: Vec<ParsedAlternative> =
             alt_sources.iter().map(|a| parse_alternative(a)).collect();
 
+        // An option section that is NOT the prefix: `rest` already had the real one removed, so
+        // anything still shaped like one sits in a later alternative or after a first prefix.
+        let misplaced = alt_sources.iter().find_map(|a| leading_option_section(a));
+
         let mut error: Option<String>;
         if option_error.is_some() {
             error = option_error;
+        } else if let Some(section) = misplaced {
+            error = Some(format!(
+                "\\{}\\ applies to the whole pattern, so it cannot open an alternative — move it to the very start, before the first |",
+                section
+            ));
         } else if has_bar_run(rest) {
             error = Some("three or more | in a row — | separates alternatives, || opens or closes a group, and a literal bar is \\|".into());
         } else if unclosed {
@@ -391,6 +400,24 @@ impl Parser {
 
         Matcher { error, case_sensitive, negate, boundary, alts }
     }
+}
+
+/// An option section at the start of an alternative, which is never what it looks like.
+///
+/// **Options are global: the prefix is read once, off the whole pattern, before it is split on
+/// `|`.** So `apple|\-\pear` cannot mean *contains apple OR not pear*. Refused 2026-09-24, for the
+/// same reason `` `a|b` `` is refused: it parses cleanly and answers a different question. See the
+/// TypeScript implementation for why only `-` still reached this point.
+fn leading_option_section(alt: &[char]) -> Option<String> {
+    if alt.first() != Some(&'\\') {
+        return None;
+    }
+    let end = alt[1..].iter().position(|&c| c == '\\').map(|i| i + 1)?;
+    let section: Vec<char> = alt[1..end].to_vec();
+    if section.is_empty() || !section.iter().all(|c| c.is_ascii_alphanumeric() || *c == '-') {
+        return None;
+    }
+    Some(section.into_iter().collect())
 }
 
 /// Whether any run of unescaped `|` is three or more long. **This one rule is what makes `||`

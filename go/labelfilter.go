@@ -195,9 +195,21 @@ func Compile(pattern string) *Matcher {
 		parsed = append(parsed, parseAlternative(src))
 	}
 
+	// An option section that is NOT the prefix: rest already had the real one removed, so anything
+	// still shaped like one sits in a later alternative or after a first prefix.
+	misplaced := ""
+	for _, src := range sources {
+		if found := leadingOptionSection(src); found != "" {
+			misplaced = found
+			break
+		}
+	}
+
 	switch {
 	case optionError != "":
 		m.Error = optionError
+	case misplaced != "":
+		m.Error = fmt.Sprintf("\\%s\\ applies to the whole pattern, so it cannot open an alternative — move it to the very start, before the first |", misplaced)
 	case hasBarRun(rest):
 		m.Error = "three or more | in a row — | separates alternatives, || opens or closes a group, and a literal bar is \\|"
 	case unclosed:
@@ -378,6 +390,37 @@ type parsedAlternative struct {
 	end   bool
 	seqs  [][]token
 	err   string
+}
+
+// leadingOptionSection returns an option section written at the start of an alternative, which is
+// never what it looks like. Options are global: the prefix is read once, off the whole pattern,
+// before it is split on |, so apple|\-\pear cannot mean "contains apple OR not pear". Refused
+// 2026-09-24 for the same reason `a|b` is refused: it parses cleanly and answers a different
+// question. See the TypeScript implementation for why only - still reached this point.
+func leadingOptionSection(alt []rune) string {
+	if len(alt) == 0 || alt[0] != '\\' {
+		return ""
+	}
+	end := -1
+	for i := 1; i < len(alt); i++ {
+		if alt[i] == '\\' {
+			end = i
+			break
+		}
+	}
+	if end <= 0 {
+		return ""
+	}
+	section := alt[1:end]
+	if len(section) == 0 {
+		return ""
+	}
+	for _, c := range section {
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-') {
+			return ""
+		}
+	}
+	return string(section)
 }
 
 // hasBarRun reports a run of three or more unescaped bars. This one rule is what makes || decidable,

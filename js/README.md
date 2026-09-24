@@ -83,7 +83,12 @@ refused outright, an anchor binds to the alternative it is written in, so that s
 number**, so `_` separates words, which regex's own `\b` gets wrong for filenames. And `\-\` is an
 *exclusion* filter: `\-\a|b` is NOT (a OR b). *Apple but not test* needs two filters, by design.
 
-The full specification is [`docs/syntax.md`](docs/syntax.md), whose two amendments carry the rulings
+**An option belongs at the very start and nowhere else.** The prefix is read once, off the whole
+pattern, before it is split on `|`, so `a|\-\b` is refused rather than read as *a, or not b*: it
+never meant that. Refused for every instruction since 2026-09-24, where before it depended on which
+letter you picked.
+
+The full specification is [`docs/syntax.md`](docs/syntax.md), whose amendments carry the rulings
 above.
 
 ## Two decisions worth knowing

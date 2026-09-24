@@ -1,3 +1,24 @@
+# 0.2.0
+
+**Breaking: an option section cannot open an alternative.** Steven ruled it on 2026-09-24 and the
+specification carries it as the amendment of that date.
+
+- breaking: `apple|\-\pear` is **refused**, saying `\-\` applies to the whole pattern and naming
+  where it belongs. Options are read once off the start of the whole pattern, before it is split on
+  `|` (§10, §13), so a section written in a later alternative was never an option and was read as
+  whatever its characters meant. It applies to a `||…||` branch too, and to a second section written
+  after a real prefix
+- breaking: the same shape is refused with any instruction character, not just `-`. The rule of
+  2026-09-23 that a backslash may not escape a letter or digit had already refused `apple|\c\pear`
+  and `a|\b\c`, leaving `-` as the one spelling that still parsed. **One rule for `c` and `b` and
+  another for `-` is what this removes**, which is the argument for the change; the misread itself had
+  already shrunk to a corner
+- **what it costs: almost nothing.** A dash needs no escape outside a set, so `a|--` was always the
+  way to write two dashes and is unaffected. Everything the refusal rejects had a shorter spelling
+  already
+- the fixture grew to **76 cases and 36 refusals, 420 assertions**, and all five implementations were
+  changed together and re-run before release. The 24.6M-assertion deep property sweep passes unchanged
+
 # 0.1.1
 
 Released to npm 2026-09-24. **A documentation release: no code changed, and the parser, the IR and

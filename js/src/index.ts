@@ -124,6 +124,27 @@ const INSTRUCTIONS = 'c-b';
 /** What may appear in an instruction section — claimed whole, so an unknown one is a named error. */
 const INSTRUCTION_SECTION = /^[A-Za-z0-9-]+$/;
 
+/**
+ * An option section at the start of an alternative, which is never what it looks like.
+ *
+ * **Options are global (§10): the prefix is read once, off the whole pattern, before it is split on
+ * `|`.** So `apple|\-\pear` cannot mean *contains apple OR not pear*; the `\-\` is just an
+ * escaped dash and a backslash, and it answers a different question while reading cleanly. Refused
+ * since 2026-09-24, the same reason `` `a|b` `` is refused.
+ *
+ * Until 2026-09-23 this shape was wider: `apple|\c\pear` meant *contains `cpear`*. Restricting
+ * escapes to non-alphanumerics closed every spelling whose option letters are LETTERS, leaving only
+ * `-`, which is legally escapable. That left one rule for `c` and `b` and another for `-`, which is
+ * the inconsistency this refusal removes, not the original misread.
+ */
+function leadingOptionSection(alt: string): string | null {
+  if (!alt.startsWith('\\')) return null;
+  const end = alt.indexOf('\\', 1);
+  if (end <= 0) return null;
+  const section = alt.slice(1, end);
+  return INSTRUCTION_SECTION.test(section) ? section : null;
+}
+
 /** Letters and numbers in any script. Definition B of a word boundary rests on this and nothing else. */
 const ALNUM = /[\p{L}\p{N}]/u;
 const isAlnum = (ch: string | undefined): boolean => ch !== undefined && ALNUM.test(ch);
@@ -293,9 +314,16 @@ export function parsePattern(pattern: string): ParsedPattern {
   const split = splitAlternatives(rest);
   const parsed = split.alts.map(parseAlternative);
 
+  // **An option section that is not the prefix.** `rest` has already had the real prefix removed, so
+  // anything still shaped like one is in the wrong place: a later alternative, or a second prefix
+  // written after the first. Checked on the split alternatives so a `||…||` branch is covered too.
+  const misplaced = split.alts.map(leadingOptionSection).find(Boolean) || null;
+
   let error: string | null = null;
   if (optionError) {
     error = optionError;
+  } else if (misplaced) {
+    error = `\\${misplaced}\\ applies to the whole pattern, so it cannot open an alternative — move it to the very start, before the first |`;
   } else if (hasBarRun(rest)) {
     error = 'three or more | in a row — | separates alternatives, || opens or closes a group, and a literal bar is \\|';
   } else if (split.unclosed) {
