@@ -1,10 +1,27 @@
+# 0.1.1
+
+Released to npm 2026-09-24. **A documentation release: no code changed, and the parser, the IR and
+every conformance case are byte-identical to 0.1.0.**
+
+- fix: **the README shipped inside 0.1.0 said the package was not published.** It carried "Not
+  published yet" and a "Status, staged, not published" section describing the `private: true` brake as
+  if it were still on, because the text was written while both were true and the publish did not
+  revisit it. npm serves the newest version's README, so the page for a published package claimed it
+  was unpublished, and correcting the file could not correct the page without a release. This is that
+  release
+- fix: the specification's second amendment made the same claim in the present tense. The change it
+  records was free precisely because nothing depended on the package, which is a fact about
+  2026-09-22 and stops being true at 0.1.0; it now reads as history
+- fix: `changelog.md`'s own 0.1.0 entry ended "Not yet published", two lines below the sentence giving
+  the date it was published
+
 # 0.1.0
 
 Released to npm 2026-09-24 as `label-filter@0.1.0`, tagged `label-filter-0.1.0`.
 
 First release-shaped version. Extracted from Squid Desktop, where the language, its specification and
 its conformance check had lived as three files; Squid Desktop is now the first **consumer**, not the
-owner. Not yet published: see `docs/releasing.md`.
+owner.
 
 - breaking: **a character set is `[…]`, not `` `…` ``.** The backtick delimited sets *and* anchored the
   pattern, and that one overload caused every confusion this language has had. It is now an anchor
