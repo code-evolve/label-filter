@@ -97,7 +97,8 @@ from its local original, and the release tags differ with them. `label-filter-0.
 there.
 
 **So publishing a commit is not a `git push`.** This phase's repository has no `origin`, on purpose,
-and `scripts/publish-github.sh` is the publication path: it builds the filtered clone, verifies it,
+and `scripts/publish-github.sh` is the publication path, reading the excluded paths from the one list
+its sibling gate reads: it builds the filtered clone, verifies it,
 pushes the branch and the tags, and prints the remote-side check to run before anything is made
 public. The filter is deterministic, so commits already public keep their hashes and a re-run
 fast-forwards.
