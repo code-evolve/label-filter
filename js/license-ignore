@@ -1,0 +1,11 @@
+**/*
+!/src
+!/dist
+!/test
+**/*.md
+# No sourcemaps are emitted, so there is nothing of the `/dist/**/*.map` kind for the comment to
+# invalidate. `tsc` output is unminified and keeps every name, so a consumer's stack trace already
+# points at readable code — which is the problem the reference packages' maps solve.
+#
+# The sandbox is deliberately NOT stamped: sandbox/index.html is a page, and sandbox/serve.mjs is a
+# development server that is not part of the published files list.
