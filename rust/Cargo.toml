@@ -1,0 +1,47 @@
+[package]
+name = "label-filter"
+version = "0.3.1"
+edition = "2021"
+rust-version = "1.70"
+license = "MIT"
+readme = "README.md"
+authors = ["Steven Spungin"]
+description = "A small glob-like pattern language for filtering lists of objects by their labels. Parsed to an IR, never compiled to a regex."
+keywords = ["filter", "pattern", "glob", "label", "match"]
+categories = ["text-processing"]
+repository = "https://github.com/code-evolve/label-filter"
+homepage = "https://www.code-evolve.com/resources/label-filter"
+# **The brake is off.** It read `publish = false` from the first commit of this crate, so that
+# publishing would be a decision somebody took rather than something that happened. Taken
+# 2026-10-17, by Enact on the cue item that asked for the word, and in a commit of its own so the
+# decision is visible in the history. That is the npm precedent.
+#
+# **And the publish STATE is declared, because the brake was never a statement about it.**
+# `site/build.mjs` read the absence of `publish = false` as "this crate is published", which was
+# harmless while the brake stood and false the moment it came off. The declaration below is what the
+# other four manifests carry, and the build throws if it is missing rather than guessing.
+# published: true
+
+# **WHAT SHIPS IS WHAT `git` TRACKS, and that is the whole of the fix.** Cargo packs the files git
+# reports for this directory, so the crate carries `LICENSE.txt` and `conformance/cases.json` only
+# because those two are now tracked rather than excluded by `.gitignore`. Measured 2026-10-17 with
+# `cargo package --list`: before, 6 files and no licence and a test whose fixture lay outside the
+# crate; after, 8 files, with both.
+#
+# **An `include` list was written here first and then removed, because it changed nothing.** The list
+# and the default produced byte-identical file lists, and naming it in `include` while the file was
+# still excluded made Cargo count it as an uncommitted change, so `cargo publish` would have demanded
+# `--allow-dirty` -- the one flag that switches off the check that a published crate matches a commit.
+# A line that reads as the thing doing the work while something else does it is worse than no line.
+#
+# `conformance/cases.json` here is a COPY, staged from the repository root by
+# `scripts/crates-cut.sh`, the way `npm run spec:stage` stages the specification into `js/`. It has
+# to be a copy, because Cargo cannot include a file from outside the package directory; the root copy
+# is the one anybody edits, and the cut script refuses to package while the two differ.
+
+# **No dependencies, and none for the tests either.** The conformance runner reads
+# `conformance/cases.json` with a 60-line reader rather than pulling in serde, so this crate compiles
+# from a cold registry cache and the fixture stays the only thing shared between implementations.
+[dependencies]
+
+[dev-dependencies]

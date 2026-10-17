@@ -1,0 +1,118 @@
+# 0.3.1
+
+**No change to the language. 0.3.0 shipped a specification that contradicted itself, and this is the
+release that corrects it.**
+
+- fix: **the specification said SEVEN reserved characters in section 2 and FOUR in section 12.**
+  Seven is right, and has been since `&` arrived: `*`, `|`, `&`, a backtick, `\`, `[` and `]`.
+  Section 12 was stale by two releases, because `[` and `]` came with character sets in 0.1.0 and `&`
+  in 0.3.0. **Nothing about what a pattern means has changed**; if you read section 12 of the 0.3.0
+  specification and concluded that `[` needed no backslash, it did
+- fix: **the conformance fixture no longer carries dated notes about when a rule was settled.** They
+  were addressed to nobody outside this project
+- docs: **the Rust crate has a README**, which 0.3.0 did not, so its registry page showed nothing
+- docs: **the Rust crate ships its licence text.** 0.3.0 carried the MIT metadata field and no
+  `LICENSE.txt`
+- chore: **two more of the five implementations are now installable.** The Rust port is on crates.io
+  as `label-filter`, and the PHP port on Packagist as `code-evolve/label-filter`. Both run the same
+  conformance fixture as the TypeScript, Python and Go ports, and both ship it so you can run it
+  yourself
+
+# 0.3.0
+
+**A seventh reserved character: `&` separates items, and every item must match.**
+
+- feat: **`a&b` matches a label holding both, in any order.** Written with alternation that was
+  `a*b|b*a`, and for three terms six alternatives, for four twenty-four, which is why this exists
+- feat: **`apple&\-\test` is *include, except*.** An item is a whole pattern, so the exclusion is an
+  ordinary `\-\` pattern sitting in one item of two. Until now `\-\` could only invert the whole
+  pattern, and the specification said in two places that *apple but not test* could not be written
+- feat: **an item carries its own option section, alternatives, group and anchors.** `` `src&md` `` is
+  *starts with `src`* and *ends with `md`*; `\c\App&\-\Test` is one case-sensitive item and one
+  case-insensitive one. **Options do not span items**, so to harden both, write both:
+  `\c\App&\c-\Test`
+- feat: **`&` binds looser than `|`.** `a|b&c` is *(a OR b) AND c*. This is the opposite of the C
+  family, where `&&` binds tighter than `||`, and it is the one rule in this language that a reader's
+  prior knowledge argues against. `||a|b||&c` says the same thing with the grouping shown
+- breaking: **`&` was a literal character and now is not.** A pattern containing one changes meaning:
+  `R&D` now asks for labels holding both `R` and `D`. **To migrate:** write `R\&D`. Measured over
+  64,638 real filenames, `&` appears in 0.10% of them and four fifths of those are the spaced form
+  `a & b`, where the new reading still returns the label you were looking for among others
+- breaking: **`parsePattern` returns `{ items, error }`.** The option flags and `alts` moved down one
+  level onto each item, because a pattern-level `caseSensitive` has nothing true to mean for
+  `\c\a&b`. `compileLabelFilter` is unchanged, and it is what almost every caller uses
+- feat: refusals that come with the operator: an empty item (`a&`, `&a`, `a&&b`), and a `&` inside a
+  `||…||` group, where items are split before groups expand so there is no item for it to belong to.
+  **One unreadable item makes the whole pattern unreadable**, so it matches every label rather than
+  none: `apple&[0-9` must not mean *contains apple and nothing matches*, which is the one way
+  conjunction could turn a typo into a confident empty list
+- feat: conformance is 96 cases, 45 refusals and 55 fragments of junk, 568 assertions, and the property
+  suite gained the conjunction identity, commutativity, idempotence, include-except, and the rule that
+  `a|b&c` and `||a|b||&c` never disagree. Its exhaustive sweep now covers eleven reserved characters
+
+# 0.2.1
+
+Documentation and code style only. **No behaviour change**: every pattern means exactly what it meant
+in 0.2.0.
+
+- docs: the README rewritten to describe the package, its install and its API, and to stop carrying
+  statements that go out of date
+- docs: two links in the README pointed at files that are not in the published package; both now point
+  at the repository
+- docs: **the specification is rewritten as one document.** Its rules had accumulated as a base text
+  plus six dated amendments, four of which superseded parts of the base, so the current behaviour was
+  only correct if you read all 1,600 lines in order. Every rule now lives in the section it belongs to,
+  the section numbers are unchanged, and the document is a third shorter
+- style: no trailing semicolons, single quotes, across the source and the tests
+
+# 0.2.0
+
+**Breaking: an option section cannot open an alternative.**
+
+- breaking: `apple|\-\pear` is now **refused**. An option prefix is read once, from the start of the
+  whole pattern, before it is split on `|`, so a `\-\` written inside a later alternative was never an
+  option; it was read as the characters it is made of. The refusal names the option and where it
+  belongs. This also covers a `||…||` branch, and a second prefix written after a real one
+- breaking: this holds for every option character. `apple|\c\pear` and `a|\b\c` were already refused;
+  `-` was the one spelling that still parsed, so the rule was previously different depending on which
+  option you wrote
+- **to migrate:** put the option at the very start, before the first `|`. For a literal dash, write it
+  plainly: `a|--` needs no escape and always worked
+
+# 0.1.1
+
+Documentation corrections. No code change.
+
+# 0.1.0
+
+First release. A small pattern language for filtering lists of objects by their labels: a plain word is
+a case-insensitive *contains*, and wildcards, anchors, character sets and alternation are there for when
+that is not enough.
+
+- feat: **character sets are `[…]`**: `[0-9]`, `[a-z]`, `[A-Za-z]`, `[0-9A-F]`. A set is always
+  case-sensitive, in both modes, because it is the one construct that can say *either case* explicitly.
+  A literal still folds, and `\c\` governs literals
+- feat: **a backtick is an anchor and nothing else**: the first character, the last character, or an
+  error. `` `apple `` starts with, `` apple` `` ends with, `` `apple` `` is exact
+- feat: **`||…||` groups alternatives**: `*.||md|txt||` writes the shared part once. A group does not
+  nest, and an anchor reaches every branch: `` `||a|b||` `` is exactly `a` or exactly `b`
+- feat: **`\-\` excludes** and **`\b\` matches whole words.** A word boundary is the edge of the label
+  or a neighbouring character that is not a letter or a number, so `_` separates words, which a regular
+  expression's own `\b` gets wrong for filenames
+- feat: **`label-filter/sticky`** for a live filter box. `createStickyFilter()` keeps the last pattern
+  that could be read and reports `stale`, so a half-typed `[0-9]` does not flash every row and narrow
+  again. `canAct()` answers the other half of the contract: an error means *show the reason* and it
+  equally means *do not act*
+- feat: an unreadable pattern **matches everything** and carries the reason on `match.error`, rather
+  than returning an empty list. A filter that hid rows for a reason nobody could see would be worse
+  than one that hid nothing
+- feat: **`` `a|b` `` is refused.** An anchor binds to the alternative it is written in, so that
+  spelling meant *starts with `a`* OR *ends with `b`* while reading like *exactly `a` or `b`*. Write
+  `` `||a|b||` `` for the reading it looks like
+- fix: **`\\` matched every label** instead of matching labels containing a backslash
+- fix: **an unknown option is refused rather than ignored.** `\d\foo` silently meant `foo`
+- fix: **matching was exponential in the number of wildcards.** `*a*a*a*a*a*z` against an 80-character
+  label took 25 seconds for a single label, on a filter that runs per keystroke over a whole list. The
+  same case is now under a millisecond
+- build: TypeScript source, ESM only, no runtime dependencies. `dist/index.js` and `dist/index.d.ts`
+  are generated, and the source ships so you can read what the matcher does
